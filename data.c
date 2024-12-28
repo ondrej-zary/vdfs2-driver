@@ -1655,42 +1655,6 @@ struct page *vdfs2_read_or_create_small_area_page(struct inode *inode,
 	return pages[0];
 }
 
-/**
- * @brief			This function write data to the file
- * @param [in]		iocb	The kiocb struct to advance by
- *				performing an operation
- * @param [in]		iov	data buffer
- * @param [in]		nr_segs	count of blocks to map
- * @param [in]		pos
- * @return			0 if success, negative value if error
- */
-ssize_t vdfs2_gen_file_buff_write(struct kiocb *iocb,
-		const struct iovec *iov, unsigned long nr_segs, loff_t pos)
-{
-	ssize_t ret = 0;
-	struct blk_plug plug;
-	struct inode *inode = INODE(iocb);
-	mutex_lock(&inode->i_mutex);
-	blk_start_plug(&plug);
-	ret = generic_file_buffered_write(iocb, iov, nr_segs, pos,
-			&iocb->ki_pos, iov->iov_len, 0);
-
-	mutex_unlock(&inode->i_mutex);
-	if (ret > 0 || ret == -EIOCBQUEUED) {
-		ssize_t err;
-
-		err = generic_write_sync(iocb->ki_filp, 0, ret);
-		if (err < 0 && ret > 0)
-			ret = err;
-	}
-	blk_finish_plug(&plug);
-	if (-EIOCBQUEUED == ret)
-		ret = wait_on_sync_kiocb(iocb);
-	return ret;
-}
-
-
-
 struct bio *vdfs2_mpage_bio_submit(int rw, struct bio *bio)
 {
 	bio->bi_end_io = end_io_write;

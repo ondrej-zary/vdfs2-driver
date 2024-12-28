@@ -1326,8 +1326,6 @@ unsigned long  vdfs2_find_next_zero_bit(const void *addr,
 unsigned long vdfs2_find_next_bit(const void *addr, unsigned long size,
 			unsigned long offset, unsigned int block_size,
 			unsigned int magic_len);
-ssize_t vdfs2_gen_file_buff_write(struct kiocb *iocb,
-		const struct iovec *iov, unsigned long nr_segs, loff_t pos);
 
 int vdfs2_sync_metadata(struct vdfs2_sb_info *sbi);
 
