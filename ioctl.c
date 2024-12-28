@@ -298,7 +298,7 @@ long vdfs2_dir_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		mutex_lock(&sbi->high_priority.task_list_lock);
 		/* if it's first high priority process */
 		if (list_empty(&sbi->high_priority.high_priority_tasks))
-			INIT_COMPLETION(sbi->high_priority.
+			reinit_completion(&sbi->high_priority.
 					high_priority_done);
 		/* add current process to list */
 		vdfs2_add_list_item(&sbi->high_priority.
@@ -320,7 +320,7 @@ long vdfs2_dir_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		mutex_lock(&sbi->high_priority.task_list_lock);
 		/* if it's first high priority process */
 		if (list_empty(&sbi->high_priority.high_priority_tasks))
-			INIT_COMPLETION(sbi->high_priority.
+			reinit_completion(&sbi->high_priority.
 					high_priority_done);
 		/* add current process to list */
 		vdfs2_add_list_item(&sbi->high_priority.
