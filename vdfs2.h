@@ -179,7 +179,6 @@ extern unsigned int cattree_prealloc;
 /* Length of log buffer */
 #define BUFFER_LENGTH 32768
 #define MAX_FUNCTION_LENGTH 30
-#define VDFS2_PROC_DIR_NAME "fs/vdfs2"
 #define VDFS2_MAX_STAT_LENGTH			55
 
 #define VDFS2_INVALID	(-EINVAL)
@@ -201,8 +200,6 @@ static inline int cmp_2_le64(__le64 a, __le64 b)
 
 /* Flags that should be inherited by new inodes from their parent. */
 #define VDFS2_FL_INHERITED	0
-/* force read-only ioctl command */
-#define VDFS2_IOC_FORCE_RO		_IOR('A', 1, long)
 /* ioctl command code for open_count fetch */
 #define	VDFS2_IOC_GET_OPEN_COUNT	_IOR('C', 1, long)
 /* ioctl command codes for high priority tasks */
@@ -1431,14 +1428,6 @@ int update_has_quota(struct vdfs2_sb_info *sbi, __u64 ino, int index);
 int get_quota(struct dentry *dentry);
 #endif
 
-#if defined(CONFIG_VDFS2_PROC)
-/* procfs.c */
-int vdfs2_dir_init(void);
-void vdfs2_dir_exit(void);
-int vdfs2_build_proc_entry(struct vdfs2_sb_info *sbi);
-void vdfs2_destroy_proc_entry(struct vdfs2_sb_info *sbi);
-#endif
-
 /* macros */
 
 # define IFTODT(mode)	(((mode) & 0170000) >> 12)
@@ -1521,37 +1510,6 @@ void vdfs2_destroy_proc_entry(struct vdfs2_sb_info *sbi);
 		PAGE_SHIFT) : page_offset)
 
 #define PAGE_TO_SECTORS(x) (x * ((1 << (PAGE_CACHE_SHIFT - SECTOR_SIZE_SHIFT))))
-
-#ifdef CONFIG_SMP
-
-/*
- * These macros iterate all files on all CPUs for a given superblock.
- * files_lglock must be held globally.
- */
-#define do_file_list_for_each_entry(__sb, __file)		\
-{								\
-	int i;							\
-	for_each_possible_cpu(i) {				\
-		struct list_head *list;				\
-		list = per_cpu_ptr((__sb)->s_files, i);		\
-		list_for_each_entry((__file), list, f_u.fu_list)
-
-#define while_file_list_for_each_entry				\
-	}							\
-}
-
-#else
-
-#define do_file_list_for_each_entry(__sb, __file)		\
-{								\
-	struct list_head *list;					\
-	list = &(sb)->s_files;					\
-	list_for_each_entry((__file), list, f_u.fu_list)
-
-#define while_file_list_for_each_entry				\
-}
-
-#endif
 
 /* VDFS2 mount options */
 enum vdfs2_mount_options {

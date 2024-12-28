@@ -386,9 +386,6 @@ static void vdfs2_put_super(struct super_block *sb)
 	printk(KERN_INFO "Bytes written during umount : %lld\n",
 			sbi->umount_written_bytes);
 #endif
-#if defined(CONFIG_VDFS2_PROC)
-	vdfs2_destroy_proc_entry(sbi);
-#endif
 	kfree(sbi);
 	VDFS2_DEBUG_SB("finished");
 }
@@ -1894,15 +1891,7 @@ static int vdfs2_fill_super(struct super_block *sb, void *data, int silent)
 #endif
 
 	vdfs2_init_high_priority(&sbi->high_priority);
-#if defined(CONFIG_VDFS2_PROC)
-	ret = vdfs2_build_proc_entry(sbi);
-	if (ret)
-		goto build_proc_entry_error;
-#endif
 	return 0;
-#if defined(CONFIG_VDFS2_PROC)
-build_proc_entry_error:
-#endif
 btree_not_verified:
 	dput(sb->s_root);
 	sb->s_root = NULL;
@@ -2059,11 +2048,6 @@ static int __init init_vdfs2_fs(void)
 
 	if (ret)
 		goto fail_create_fsm_cache;
-#if defined(CONFIG_VDFS2_PROC)
-	ret = vdfs2_dir_init();
-	if (ret)
-		goto fail_register_proc;
-#endif
 	ret = register_filesystem(&vdfs2_fs_type);
 	if (ret)
 		goto failed_register_fs;
@@ -2071,10 +2055,6 @@ static int __init init_vdfs2_fs(void)
 	return 0;
 
 failed_register_fs:
-#if defined(CONFIG_VDFS2_PROC)
-	vdfs2_dir_exit();
-fail_register_proc:
-#endif
 	vdfs2_fsm_cache_destroy();
 fail_create_fsm_cache:
 	vdfs2_exttree_cache_destroy();
@@ -2093,9 +2073,6 @@ fail_create_btree_cache:
  */
 static void __exit exit_vdfs2_fs(void)
 {
-#if defined(CONFIG_VDFS2_PROC)
-	vdfs2_dir_exit();
-#endif
 	vdfs2_fsm_cache_destroy();
 	unregister_filesystem(&vdfs2_fs_type);
 	kmem_cache_destroy(vdfs2_inode_cachep);

@@ -277,54 +277,6 @@ void vdfs2_destroy_high_priority(struct vdfs2_high_priority *high_priority)
 	complete_all(&high_priority->high_priority_done);
 }
 
-static void clear_files_rw_mode(struct super_block *sb)
-{
-	struct file *f;
-
-retry:
-	do_file_list_for_each_entry(sb, f) {
-		struct vfsmount *mnt;
-		if (!S_ISREG(f->f_path.dentry->d_inode->i_mode))
-			continue;
-		if (!file_count(f))
-			continue;
-		if (!(f->f_mode & FMODE_WRITE))
-			continue;
-		spin_lock(&f->f_lock);
-		f->f_mode &= ~FMODE_WRITE;
-		spin_unlock(&f->f_lock);
-		if (file_check_writeable(f) != 0)
-			continue;
-		file_release_write(f);
-		mnt = mntget(f->f_path.mnt);
-		if (!mnt)
-			goto retry;
-		mnt_drop_write(mnt);
-		mntput(mnt);
-		goto retry;
-	} while_file_list_for_each_entry;
-}
-
-static int force_ro(struct super_block *sb)
-{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)
-	if (sb->s_frozen != SB_UNFROZEN)
-#else
-	if (sb->s_writers.frozen != SB_UNFROZEN)
-#endif
-		return -EBUSY;
-
-	shrink_dcache_sb(sb);
-	sync_filesystem(sb);
-
-	clear_files_rw_mode(sb);
-
-	sb->s_flags = (sb->s_flags & ~MS_RMT_MASK) | MS_RDONLY;
-
-	invalidate_bdev(sb->s_bdev);
-	return 0;
-}
-
 /**
  * @brief	ioctl (an abbreviation of input/output control) is a system
  *		call for device-specific input/output operations and other
@@ -342,16 +294,6 @@ long vdfs2_dir_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		((struct super_block *)inode->i_sb)->s_fs_info;
 	struct super_block *sb = (struct super_block *)inode->i_sb;
 	switch (cmd) {
-	case VDFS2_IOC_FORCE_RO:
-		if (test_option(sbi, FORCE_RO))
-			return -EINVAL;
-		down_write(&sb->s_umount);
-		if (sb->s_root && sb->s_bdev && !(sb->s_flags & MS_RDONLY))
-			force_ro(sb);
-
-		up_write(&sb->s_umount);
-		set_option(sbi, FORCE_RO);
-		break;
 	case VDFS2_IOC_GRAB2PARENT:
 		mutex_lock(&sbi->high_priority.task_list_lock);
 		/* if it's first high priority process */

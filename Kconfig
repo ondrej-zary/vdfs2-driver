@@ -92,15 +92,6 @@ config VDFS2_QUOTA
 
 		If unsure, say N.
 
-config VDFS2_PROC
-	bool "VDFS2 print path to files which has a dirty pages"
-	depends on VDFS2_FS
-	help
-		VDFS2 file driver prints a path to files which has a dirty
-		pages via proc file system
-
-		If unsure, say N.
-
 config VDFS2_HW2_SUPPORT
 	bool "Use HW2 API to decompress user data from installed SMART package"
 	depends on ARCH_SDP
