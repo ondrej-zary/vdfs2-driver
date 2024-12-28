@@ -1757,7 +1757,7 @@ static int vdfs2_setattr(struct dentry *dentry, struct iattr *iattr)
 		if (error)
 			goto exit;
 
-		truncate_pagecache(inode, inode->i_size, iattr->ia_size);
+		truncate_pagecache(inode, iattr->ia_size);
 
 		mutex_lock(&VDFS2_I(inode)->truncate_mutex);
 		error = vdfs2_update_inode(inode, iattr->ia_size);
