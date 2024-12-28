@@ -120,7 +120,7 @@ struct bio *vdfs2_allocate_new_bio(struct block_device *bdev, sector_t first_sec
 
 	if (bio) {
 		bio->bi_bdev = bdev;
-		bio->bi_sector = first_sector;
+		bio->bi_iter.bi_sector = first_sector;
 	}
 
 	return bio;
