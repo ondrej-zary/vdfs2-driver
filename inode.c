@@ -1605,64 +1605,6 @@ static int vdfs2_rmdir(struct inode *dir, struct dentry *dentry)
 	return vdfs2_unlink(dir, dentry);
 }
 
-/**
- * @brief		Direct IO.
- * @param [in]	rw		read/write
- * @param [in]	iocb	Pointer to io block
- * @param [in]	iov		Pointer to IO vector
- * @param [in]	offset	Offset
- * @param [in]	nr_segs	Number of segments
- * @return		Returns written size
- */
-static __attribute__ ((unused)) ssize_t vdfs2_direct_IO(int rw,
-		struct kiocb *iocb, const struct iovec *iov,
-		loff_t offset, unsigned long nr_segs)
-{
-	ssize_t rc, inode_new_size = 0;
-	struct file *file = iocb->ki_filp;
-	struct inode *inode = file->f_path.dentry->d_inode->i_mapping->host;
-	struct vdfs2_sb_info *sbi = VDFS2_SB(inode->i_sb);
-
-	if (rw)
-		vdfs2_start_transaction(sbi);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-	rc = blockdev_direct_IO(rw, iocb, inode, iov, offset, nr_segs,
-			vdfs2_get_block);
-#else
-	rc = blockdev_direct_IO(rw, iocb, inode, inode->i_sb->s_bdev, iov,
-		offset, nr_segs, vdfs2_get_block, NULL);
-#endif
-
-	if (!rw)
-		return rc;
-
-	mutex_lock(&VDFS2_I(inode)->truncate_mutex);
-	VDFS2_DEBUG_MUTEX("truncate mutex lock success");
-
-	if (!IS_ERR_VALUE(rc)) { /* blockdev_direct_IO successfully finished */
-		if ((offset + rc) > i_size_read(inode))
-			/* last accessed byte behind old inode size */
-			inode_new_size = offset + rc;
-	} else if (VDFS2_I(inode)->fork.total_block_count >
-			inode_size_to_blocks(inode))
-		/* blockdev_direct_IO finished with error, but some free space
-		 * allocations for inode may have occured, inode internal fork
-		 * changed, but inode i_size stay unchanged. */
-		inode_new_size = VDFS2_I(inode)->fork.total_block_count <<
-			sbi->block_size_shift;
-
-	if (inode_new_size) {
-		i_size_write(inode, inode_new_size);
-		vdfs2_write_inode_to_bnode(inode);
-	}
-
-	VDFS2_DEBUG_MUTEX("truncate mutex unlock");
-	mutex_unlock(&VDFS2_I(inode)->truncate_mutex);
-
-	vdfs2_stop_transaction(VDFS2_SB(inode->i_sb));
-	return rc;
-}
-
 static int vdfs2_truncate_pages(struct inode *inode, loff_t newsize)
 {
 	int error = 0;
@@ -2222,7 +2164,6 @@ const struct address_space_operations vdfs2_aops = {
 	.write_begin	= vdfs2_write_begin,
 	.write_end	= vdfs2_write_end,
 	.bmap		= vdfs2_bmap,
-/*	.direct_IO	= vdfs2_direct_IO,*/
 	.migratepage	= buffer_migrate_page,
 	.releasepage = vdfs2_releasepage,
 /*	.set_page_dirty = __set_page_dirty_buffers,*/
@@ -2254,7 +2195,6 @@ static const struct address_space_operations vdfs2_aops_special = {
 	.write_begin	= vdfs2_write_begin,
 	.write_end	= vdfs2_write_end,
 	.bmap		= vdfs2_bmap,
-/*	.direct_IO	= vdfs2_direct_IO, */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
 	.migratepage	= vdfs2_fail_migrate_page,
 #else
