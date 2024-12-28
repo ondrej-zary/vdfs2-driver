@@ -149,11 +149,10 @@ static int vdfs2_insert_cattree_object(struct vdfs2_btree *tree,
 /**
  * @brief		Method to read (list) directory.
  * @param [in]	filp	File pointer
- * @param [in]	dirent	Directory entry
- * @param [in]	filldir	Callback filldir for kernel
+ * @param [in]	ctx	Directory context
  * @return		Returns count of files/dirs
  */
-static int vdfs2_readdir(struct file *filp, void *dirent, filldir_t filldir)
+static int vdfs2_readdir(struct file *filp, struct dir_context *ctx)
 {
 	struct inode *inode = filp->f_path.dentry->d_inode;
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
@@ -164,16 +163,17 @@ static int vdfs2_readdir(struct file *filp, void *dirent, filldir_t filldir)
 	struct vdfs2_cattree_record *record;
 	struct vdfs2_btree *btree = sbi->catalog_tree;
 	/* return 0 if no more entries in the directory */
-	switch (filp->f_pos) {
+	switch (ctx->pos) {
 	case 0:
-		if (filldir(dirent, ".", 1, filp->f_pos++, inode->i_ino,
-					DT_DIR))
+		if (!dir_emit(ctx, ".", 1, inode->i_ino, DT_DIR))
 			goto exit_noput;
+		ctx->pos++;
 		/* fall through */
 	case 1:
-		if (filldir(dirent, "..", 2, filp->f_pos++,
+		if (!dir_emit(ctx, "..", 2,
 			dentry->d_parent->d_inode->i_ino, DT_DIR))
 			goto exit_noput;
+		ctx->pos++;
 		break;
 	default:
 		if (!filp->private_data)
@@ -252,11 +252,11 @@ static int vdfs2_readdir(struct file *filp, void *dirent, filldir_t filldir)
 			obj_id = le64_to_cpu(cattree_val->object_id);
 		}
 
-		ret = filldir(dirent, record->key->name.unicode_str,
+		ret = dir_emit(ctx, record->key->name.unicode_str,
 				record->key->name.length,
-				filp->f_pos, obj_id, IFTODT(object_mode));
+				obj_id, IFTODT(object_mode));
 
-		if (ret) {
+		if (!ret) {
 			char *private_data;
 			if (!filp->private_data) {
 				private_data = kzalloc(VDFS2_CAT_MAX_NAME,
@@ -277,7 +277,7 @@ static int vdfs2_readdir(struct file *filp, void *dirent, filldir_t filldir)
 			goto exit;
 		}
 
-		++filp->f_pos;
+		ctx->pos++;
 		ret = vdfs2_cattree_get_next_record(record);
 		if ((ret == -ENOENT) ||
 			record->key->parent_id != cpu_to_le64(catalog_id)) {
@@ -2311,7 +2311,7 @@ const struct file_operations vdfs2_dir_operations = {
 	 * [vdfs2_dir_ops] add to vdfs2_dir_operations necessary methods */
 	.llseek		= generic_file_llseek,
 	.read		= generic_read_dir,
-	.readdir	= vdfs2_readdir,
+	.iterate	= vdfs2_readdir,
 	.unlocked_ioctl = vdfs2_dir_ioctl,
 };
 
