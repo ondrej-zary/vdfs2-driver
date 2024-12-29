@@ -13,10 +13,10 @@ static int writepage_small(struct address_space *mapping,
 		struct writeback_control *wbc);
 static int writepage_tiny(struct address_space *mapping,
 		struct writeback_control *wbc);
-static ssize_t process_tiny_file(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos, struct page *page);
-static ssize_t process_small_file(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos, struct page *page);
+static ssize_t process_tiny_file(struct kiocb *iocb, struct iov_iter *from,
+		struct page *page);
+static ssize_t process_small_file(struct kiocb *iocb, struct iov_iter *from,
+		struct page *page);
 
 /**
  * @brief			Read multiple pages function.
@@ -696,12 +696,11 @@ exit:
 /**
  * @brief	Tiny files writing
  * @param [in]	iocb		Struct describing writing file
- * @param [in]	iov		Struct for writing data
- * @param [in]	write_pos	Position to write from
+ * @param [in]	from		iov_iter to write from
  * @return	Returns number of bytes written or an error code
  */
 static ssize_t write_tiny_small_file(struct kiocb *iocb,
-	const struct iovec *iov, loff_t write_pos, struct page *page)
+	struct iov_iter *from, struct page *page)
 {
 	struct inode *inode = INODE(iocb);
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
@@ -727,18 +726,18 @@ static ssize_t write_tiny_small_file(struct kiocb *iocb,
 		ret = -ENOMEM;
 		goto exit;
 	}
-	ret = __copy_from_user_inatomic(data + write_pos,
-			iov->iov_base, iocb->ki_nbytes);
+	ret = __copy_from_user_inatomic(data + iocb->ki_pos,
+			from->iov->iov_base, iocb->ki_nbytes);
 	kunmap(page);
 	set_page_dirty(page);
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE)) {
-		inode_info->tiny.len = write_pos + iocb->ki_nbytes;
+		inode_info->tiny.len = iocb->ki_pos + iocb->ki_nbytes;
 		/* update i_size only if it's smaller than tiny.len */
 		if (inode_info->tiny.i_size < inode_info->tiny.len)
 			inode_info->tiny.i_size = inode_info->tiny.len;
 		i_size_write(inode, inode_info->tiny.i_size);
 	} else if (is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
-		inode_info->small.len = write_pos + iocb->ki_nbytes;
+		inode_info->small.len = iocb->ki_pos + iocb->ki_nbytes;
 		/* update i_size only if it's smaller than small.len */
 		if (inode_info->small.i_size < inode_info->small.len)
 			inode_info->small.i_size = inode_info->small.len;
@@ -766,7 +765,7 @@ static ssize_t write_tiny_small_file(struct kiocb *iocb,
 	}
 #endif
 
-	iocb->ki_pos = write_pos + iocb->ki_nbytes;
+	iocb->ki_pos += iocb->ki_nbytes;
 exit:
 	return ret;
 }
@@ -878,14 +877,11 @@ exit:
 /**
  * @brief		Function for convertion tiny files to small files
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
 static ssize_t convert_tiny_file_to_small_file(struct kiocb *iocb,
-		const struct iovec *iov, loff_t write_pos,
-		struct page *page)
+		struct iov_iter *from, struct page *page)
 {
 	void *data = NULL;
 	struct inode *inode = INODE(iocb);
@@ -911,15 +907,15 @@ static ssize_t convert_tiny_file_to_small_file(struct kiocb *iocb,
 	}
 	len = inode_info->tiny.len;
 	/* copy user data */
-	ret = __copy_from_user_inatomic(data + write_pos,
-		iov->iov_base, iocb->ki_nbytes);
+	ret = __copy_from_user_inatomic(data + iocb->ki_pos,
+		from->iov->iov_base, iocb->ki_nbytes);
 	/* convert tiny inode info to small inode info */
 	memset(&inode_info->tiny, 0, sizeof(inode_info->small));
 	inode_info->small.cell = ULLONG_MAX;
 	clear_vdfs2_inode_flag(inode, TINY_FILE);
 	set_vdfs2_inode_flag(inode, SMALL_FILE);
 	atomic64_dec(&sbi->tiny_files_counter);
-	iocb->ki_pos = write_pos + iocb->ki_nbytes;
+	iocb->ki_pos = iocb->ki_pos + iocb->ki_nbytes;
 	inode_info->small.i_size = i_size_read(inode);
 	inode_info->small.len =  len + iocb->ki_nbytes;
 	/* if data was written successfully */
@@ -953,14 +949,11 @@ exit:
 /**
  * @brief		Function for convertion tiny files to ordinary files
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
 static ssize_t convert_tiny_file_to_ordinary_file(struct kiocb *iocb,
-		const struct iovec *iov, unsigned long nr_segs, loff_t pos,
-		struct page *page)
+		struct iov_iter *from, struct page *page)
 {
 	ssize_t ret = 0;
 	struct inode *inode = INODE(iocb);
@@ -979,7 +972,7 @@ static ssize_t convert_tiny_file_to_ordinary_file(struct kiocb *iocb,
 	vdfs2_stop_transaction(sbi);
 	atomic64_dec(&VDFS2_SB(inode->i_sb)->tiny_files_counter);
 	/* Writing user data */
-	ret = generic_file_aio_write(iocb, iov, nr_segs, pos);
+	ret = generic_file_write_iter(iocb, from);
 	vdfs2_start_transaction(sbi);
 	lock_page(page);
 	mutex_lock(&inode_info->truncate_mutex);
@@ -989,14 +982,11 @@ static ssize_t convert_tiny_file_to_ordinary_file(struct kiocb *iocb,
 /**
  * @brief		Function for convertion small files to ordinary files
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
 static ssize_t convert_small_file_to_ordinary_file(struct kiocb *iocb,
-		const struct iovec *iov, unsigned long nr_segs, loff_t pos,
-		struct page *page)
+		struct iov_iter *from, struct page *page)
 {
 	ssize_t ret;
 	struct inode *inode = INODE(iocb);
@@ -1016,7 +1006,7 @@ static ssize_t convert_small_file_to_ordinary_file(struct kiocb *iocb,
 	unlock_page(page);
 	vdfs2_stop_transaction(sbi);
 	/* Writing user data */
-	ret = generic_file_aio_write(iocb, iov, nr_segs, pos);
+	ret = generic_file_write_iter(iocb, from);
 	vdfs2_start_transaction(sbi);
 	lock_page(page);
 	mutex_lock(&inode_info->truncate_mutex);
@@ -1026,13 +1016,10 @@ static ssize_t convert_small_file_to_ordinary_file(struct kiocb *iocb,
 /**
  * @brief		Write tiny and small file to page cache
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
-ssize_t process_tiny_small_file(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos)
+ssize_t process_tiny_small_file(struct kiocb *iocb, struct iov_iter *from)
 {
 	struct inode *inode = INODE(iocb);
 	struct vdfs2_sb_info *sbi = VDFS2_SB(inode->i_sb);
@@ -1050,11 +1037,11 @@ ssize_t process_tiny_small_file(struct kiocb *iocb, const struct iovec *iov,
 	/* lock the mutex before starting work with the inode */
 	mutex_lock(&VDFS2_I(inode)->truncate_mutex);
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE))
-		ret = process_tiny_file(iocb, iov, nr_segs, pos, page);
+		ret = process_tiny_file(iocb, from, page);
 
 	/* The target file is small*/
 	else if (is_vdfs2_inode_flag_set(inode, SMALL_FILE))
-		ret = process_small_file(iocb, iov, nr_segs, pos, page);
+		ret = process_small_file(iocb, from, page);
 
 	/* The target file is a normal file */
 	else {
@@ -1062,7 +1049,7 @@ ssize_t process_tiny_small_file(struct kiocb *iocb, const struct iovec *iov,
 		unlock_page(page);
 		page_cache_release(page);
 		vdfs2_stop_transaction(sbi);
-		ret = generic_file_aio_write(iocb, iov, nr_segs, pos);
+		ret = generic_file_write_iter(iocb, from);
 		goto exit;
 	}
 	mutex_unlock(&VDFS2_I(inode)->truncate_mutex);
@@ -1075,13 +1062,11 @@ exit:
 /**
  * @brief		Tiny files (data is stored at metadata area) processing
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
-static ssize_t process_tiny_file(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos, struct page *page)
+static ssize_t process_tiny_file(struct kiocb *iocb, struct iov_iter *from,
+		struct page *page)
 {
 	ssize_t ret;
 	struct inode *inode = INODE(iocb);
@@ -1090,22 +1075,21 @@ static ssize_t process_tiny_file(struct kiocb *iocb, const struct iovec *iov,
 		return -EINVAL;
 
 	/*The target file is tiny and writing data is placed in metadata */
-	if (pos + iocb->ki_nbytes <= TINY_DATA_SIZE)
-		ret = write_tiny_small_file(iocb, iov, pos, page);
+	if (iocb->ki_pos + iocb->ki_nbytes <= TINY_DATA_SIZE)
+		ret = write_tiny_small_file(iocb, from, page);
 
 	/* The target file is tiny and writing data isn't placed in metadata,
 	 * but placed in small area cell*/
-	else if ((pos + iocb->ki_nbytes <=
+	else if ((iocb->ki_pos + iocb->ki_nbytes <=
 			VDFS2_SB(INODE(iocb)->i_sb)->small_area->cell_size) &&
 			(test_option(sbi, TINYSMALL) != 0))
-		ret = convert_tiny_file_to_small_file(iocb, iov, pos, page);
+		ret = convert_tiny_file_to_small_file(iocb, from, page);
 
 	/* The target file is tiny and writing data isn't placed neither
 	 * metadata nor small area cell, clear tiny flag and write data in
 	 * a common way */
 	else
-		ret = convert_tiny_file_to_ordinary_file(iocb, iov,
-				nr_segs, pos, page);
+		ret = convert_tiny_file_to_ordinary_file(iocb, from, page);
 
 	return ret;
 }
@@ -1113,25 +1097,22 @@ static ssize_t process_tiny_file(struct kiocb *iocb, const struct iovec *iov,
 /**
  * @brief		Small files (data is stored at special area) processing
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
-static ssize_t process_small_file(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos, struct page *page)
+static ssize_t process_small_file(struct kiocb *iocb, struct iov_iter *from,
+		struct page *page)
 {
 	ssize_t ret;
 	if (unlikely(iocb->ki_filp->f_flags & O_DIRECT))
 		return -EINVAL;
 	/* The target file is small, data is placed at small area cell */
-	if (pos + iocb->ki_nbytes <=
+	if (iocb->ki_pos + iocb->ki_nbytes <=
 			VDFS2_SB(INODE(iocb)->i_sb)->small_area->cell_size) {
-		ret = write_tiny_small_file(iocb, iov, pos, page);
+		ret = write_tiny_small_file(iocb, from, page);
 	/* The target file is small, data isn't placed at small area cell */
 	} else {
-		ret = convert_small_file_to_ordinary_file(iocb,	iov,
-				nr_segs, pos, page);
+		ret = convert_small_file_to_ordinary_file(iocb,	from, page);
 	}
 	return ret;
 }

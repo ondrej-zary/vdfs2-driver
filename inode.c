@@ -1361,7 +1361,7 @@ again:
 
 		if (!extent.first_block) {
 			/* it shouldn't happen because space
-			 * was reserved early in aio_write */
+			 * was reserved early in write_iter */
 			BUG();
 			goto exit;
 		}
@@ -2310,15 +2310,12 @@ static inline loff_t get_real_writing_position(struct kiocb *iocb, loff_t pos)
 
 /**
 	iocb->ki_pos = write_pos;
- * @brief		VDFS2 function for aio write
+ * @brief		VDFS2 function for write iter
  * @param [in]	iocb	Struct describing writing file
- * @param [in]	iov	Struct for writing data
- * @param [in]	nr_segs	Number of segs to write
- * @param [in]	pos	Position to write from
+ * @param [in]	from	iov_iter to write from
  * @return		Returns number of bytes written or an error code
  */
-static ssize_t vdfs2_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos)
+static ssize_t vdfs2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 {
 	struct inode *inode = INODE(iocb);
 	struct super_block *sb = inode->i_sb;
@@ -2333,11 +2330,11 @@ again:
 	/* The target file is tiny or small */
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE) ||
 		is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
-		loff_t write_pos = get_real_writing_position(iocb, pos);
-		ret = process_tiny_small_file(iocb, iov, nr_segs, write_pos);
+		get_real_writing_position(iocb, iocb->ki_pos);
+		ret = process_tiny_small_file(iocb, from);
 	/* The target file is a normal file */
 	} else
-		ret = generic_file_aio_write(iocb, iov, nr_segs, pos);
+		ret = generic_file_write_iter(iocb, from);
 
 	if (ret == -ENOSPC && sbi->next_free_blocks && count) {
 		/* try to free released blocks */
@@ -2354,22 +2351,19 @@ again:
 }
 
 /**
- * @brief		VDFS2 function for aio read
+ * @brief		VDFS2 function for read iter
  * @param [in]	iocb	Struct describing reading file
- * @param [in]	iov	Struct for read data
- * @param [in]	nr_segs	Number of segs to read
- * @param [in]	pos	Position to read from
+ * @param [out]	to	iov_iter to read to
  * @return		Returns number of bytes read or an error code
  */
-static ssize_t vdfs2_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos)
+static ssize_t vdfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 {
 	struct inode *inode = INODE(iocb);
 	ssize_t ret;
 	if (check_permissions((struct vdfs2_sb_info *)inode->i_sb->s_fs_info))
 		return -EINTR;
 
-	ret = generic_file_aio_read(iocb, iov, nr_segs, pos);
+	ret = generic_file_read_iter(iocb, to);
 	return ret;
 }
 
@@ -2378,10 +2372,10 @@ static ssize_t vdfs2_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
  */
 static const struct file_operations vdfs2_file_operations = {
 	.llseek		= generic_file_llseek,
-	.read		= do_sync_read,
-	.aio_read	= vdfs2_file_aio_read,
-	.write		= do_sync_write,
-	.aio_write	= vdfs2_file_aio_write,
+	.read		= new_sync_read,
+	.read_iter	= vdfs2_file_read_iter,
+	.write		= new_sync_write,
+	.write_iter	= vdfs2_file_write_iter,
 	.mmap		= generic_file_mmap,
 	.open		= vdfs2_file_open,
 	.release	= vdfs2_file_release,

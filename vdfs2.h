@@ -1024,8 +1024,6 @@ struct inode *vdfs2_special_iget(struct super_block *sb, unsigned long ino);
 struct inode *vdfs2_get_root_inode(struct vdfs2_btree *tree);
 int vdfs2_get_iblock_extent(struct inode *inode, sector_t iblock,
 		struct vdfs2_extent_info *result, sector_t *hint_block);
-ssize_t vdfs2_gen_file_aio_write(struct kiocb *iocb,
-		const struct iovec *iov, unsigned long nr_segs, loff_t pos);
 void vdfs2_free_reserved_space(struct inode *inode, sector_t iblocks_count);
 /* options.c */
 
@@ -1407,8 +1405,7 @@ int init_small_files_area_manager(struct vdfs2_sb_info *sbi);
 void destroy_small_files_area_manager(struct vdfs2_sb_info *sbi);
 int vdfs2_get_free_cell(struct vdfs2_sb_info *sbi, u64 *cell_num);
 int vdfs2_free_cell(struct vdfs2_sb_info *sbi, u64 cell_n);
-ssize_t process_tiny_small_file(struct kiocb *iocb, const struct iovec *iov,
-		unsigned long nr_segs, loff_t pos);
+ssize_t process_tiny_small_file(struct kiocb *iocb, struct iov_iter *from);
 ssize_t read_tiny_file(struct kiocb *iocb, const struct iovec *iov);
 ssize_t read_small_file(struct kiocb *iocb, const struct iovec *iov);
 int write_tiny_small_page(struct page *page, struct writeback_control *wbc);
