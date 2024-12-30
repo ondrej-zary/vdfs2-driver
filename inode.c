@@ -24,7 +24,6 @@
 #include <linux/nls.h>
 #include <linux/mpage.h>
 #include <linux/version.h>
-#include <linux/migrate.h>
 #include <linux/pagemap.h>
 #include <linux/pagevec.h>
 #include <linux/bio.h>
@@ -2170,20 +2169,6 @@ const struct address_space_operations vdfs2_aops = {
 
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-int vdfs2_fail_migrate_page(struct address_space *mapping,
-			struct page *newpage, struct page *page,
-				enum migrate_mode mode)
-{
-#ifdef CONFIG_MIGRATION
-	return fail_migrate_page(mapping, newpage, page);
-#else
-	return -EIO;
-#endif
-}
-#endif
-
-
 static const struct address_space_operations vdfs2_aops_special = {
 	.readpage	= vdfs2_readpage_special,
 	.readpages	= vdfs2_readpages_special,
@@ -2195,11 +2180,6 @@ static const struct address_space_operations vdfs2_aops_special = {
 	.write_begin	= vdfs2_write_begin,
 	.write_end	= vdfs2_write_end,
 	.bmap		= vdfs2_bmap,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-	.migratepage	= vdfs2_fail_migrate_page,
-#else
-	.migratepage	= fail_migrate_page,
-#endif
 /*	.set_page_dirty = __set_page_dirty_buffers,*/
 };
 
