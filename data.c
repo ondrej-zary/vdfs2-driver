@@ -1766,7 +1766,7 @@ alloc_new:
 		BUG();
 	if (IS_ERR_OR_NULL(bio)) {
 		bio = vdfs2_allocate_new_bio(bdev, boundary_block << (blkbits - 9),
-				bio_get_nr_vecs(bdev));
+				BIO_MAX_PAGES);
 		if (IS_ERR_OR_NULL(bio))
 			goto confused;
 	}
