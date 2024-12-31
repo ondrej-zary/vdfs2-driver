@@ -170,7 +170,7 @@ static struct vdfs2_fsm_btree_node *allocate_btree_node(
 	struct vdfs2_fsm_btree_node *node;
 
 	/* Allocate memory for the node*/
-	node = kmem_cache_alloc(vdfs2_fsm_node_cachep, __GFP_WAIT);
+	node = kmem_cache_alloc(vdfs2_fsm_node_cachep, GFP_ATOMIC);
 
 	if (!node) {
 		VDFS2_ERR("can't allocate memory for FSM b-tree node");

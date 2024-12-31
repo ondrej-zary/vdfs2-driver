@@ -2908,6 +2908,7 @@ struct inode *vdfs2_special_iget(struct super_block *sb, unsigned long ino)
 	inode->i_mode = 0;
 
 	/* Metadata pages can not be migrated */
+#define GFP_MOVABLE_MASK (__GFP_RECLAIMABLE|__GFP_MOVABLE)
 	gfp_mask = (mapping_gfp_mask(inode->i_mapping) & ~GFP_MOVABLE_MASK);
 	mapping_set_gfp_mask(inode->i_mapping, gfp_mask);
 

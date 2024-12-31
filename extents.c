@@ -382,7 +382,7 @@ void vdfs2_exttree_cache_destroy(void)
 struct vdfs2_exttree_key *vdfs2_get_exttree_key(void)
 {
 	struct vdfs2_exttree_key *key =
-		kmem_cache_alloc(extents_tree_key_cachep, __GFP_WAIT);
+		kmem_cache_alloc(extents_tree_key_cachep, GFP_ATOMIC);
 	return key ? key : ERR_PTR(-ENOMEM);
 }
 

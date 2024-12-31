@@ -80,7 +80,7 @@ void vdfs2_hlinktree_cache_destroy(void)
 struct vdfs2_hlinktree_key *vdfs2_get_hlinktree_key(void)
 {
 	struct vdfs2_hlinktree_key *key =
-		kmem_cache_alloc(hardlinks_tree_key_cachep, __GFP_WAIT);
+		kmem_cache_alloc(hardlinks_tree_key_cachep, GFP_ATOMIC);
 	return key ? key : ERR_PTR(-ENOMEM);
 }
 
