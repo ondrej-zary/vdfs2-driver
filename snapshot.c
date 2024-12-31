@@ -400,7 +400,7 @@ static int get_table_version(struct vdfs2_sb_info *sbi,
 			goto exit;
 		}
 	}
-	ret = vdfs2_table_IO(sbi, pages, length, READ, &start);
+	ret = vdfs2_table_IO(sbi, pages, length, REQ_OP_READ, 0, &start);
 	if (ret)
 		goto exit;
 	table = vmap(pages, pages_per_table, VM_MAP, PAGE_KERNEL);
@@ -520,8 +520,8 @@ static int load_base_table(struct vdfs2_sb_info *sbi,
 
 	*ext_table_start = table_start;
 	*table_version_out = table_version;
-	ret = vdfs2_table_IO(sbi, table_pages, sectors_per_tables, READ,
-			&table_start);
+	ret = vdfs2_table_IO(sbi, table_pages, sectors_per_tables, REQ_OP_READ,
+			0, &table_start);
 	if (ret)
 		goto error_exit;
 	table = vmap(table_pages, pages_per_tables, VM_MAP, PAGE_KERNEL);
@@ -574,7 +574,8 @@ static int load_extended_table(struct vdfs2_sb_info *sbi, sector_t start)
 			goto exit;
 		}
 	}
-	ret = vdfs2_table_IO(sbi, snapshot->extended_table, 8, READ, &start);
+	ret = vdfs2_table_IO(sbi, snapshot->extended_table, 8, REQ_OP_READ, 0,
+			&start);
 	return ret;
 exit:
 	__free_page(snapshot->extended_table[0]);
@@ -1060,8 +1061,8 @@ int vdfs2_update_translation_tables(struct vdfs2_sb_info *sbi)
 	table_size = le32_to_cpu(descriptor->checksum_offset) + CRC32_SIZE;
 	sectors_count = (DIV_ROUND_UP(table_size, SECTOR_SIZE));
 
-	ret = vdfs2_table_IO(sbi, table, sectors_count, WRITE_FLUSH_FUA,
-			&isector);
+	ret = vdfs2_table_IO(sbi, table, sectors_count, REQ_OP_WRITE,
+			WRITE_FLUSH_FUA, &isector);
 	snapshot->isector = isector;
 	snapshot->sync_count++;
 	snapshot->dirty_pages_count = 0;

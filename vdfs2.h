@@ -1328,10 +1328,10 @@ unsigned long vdfs2_find_next_bit(const void *addr, unsigned long size,
 int vdfs2_sync_metadata(struct vdfs2_sb_info *sbi);
 
 int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
-		s64 sectors_count, int rw, sector_t *isector);
+		s64 sectors_count, int op, int op_flags, sector_t *isector);
 
 struct page *vdfs2_read_or_create_page(struct inode *inode, pgoff_t index);
-struct bio *vdfs2_mpage_bio_submit(int rw, struct bio *bio);
+struct bio *vdfs2_mpage_bio_submit(int op, struct bio *bio);
 
 int vdfs2_mpage_writepage(struct page *page,
 		struct writeback_control *wbc, void *data);
