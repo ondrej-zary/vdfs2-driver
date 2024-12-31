@@ -1678,7 +1678,7 @@ static int vdfs2_setattr(struct dentry *dentry, struct iattr *iattr)
 #endif
 
 	vdfs2_start_transaction(VDFS2_SB(inode->i_sb));
-	error = inode_change_ok(inode, iattr);
+	error = setattr_prepare(dentry, iattr);
 	if (error)
 		goto exit;
 #ifdef CONFIG_VDFS2_QUOTA
