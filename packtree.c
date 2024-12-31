@@ -516,11 +516,11 @@ int vdfs2_install_packtree(struct file *parent_dir, struct file *image_file,
 	ipv->source_image_parent_object_id = cpu_to_le64(parent_inode->i_ino);
 
 	ipv->source_image_name.length =
-			cpu_to_le32(image_file->f_dentry->d_name.len);
+			cpu_to_le32(image_file->f_path.dentry->d_name.len);
 
 	memcpy(ipv->source_image_name.unicode_str,
-			image_file->f_dentry->d_name.name,
-			image_file->f_dentry->d_name.len);
+			image_file->f_path.dentry->d_name.name,
+			image_file->f_path.dentry->d_name.len);
 
 	vdfs2_mark_record_dirty((struct vdfs2_btree_gen_record *)record);
 

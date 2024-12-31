@@ -155,7 +155,7 @@ static int vdfs2_readdir(struct file *filp, struct dir_context *ctx)
 {
 	struct inode *inode = filp->f_path.dentry->d_inode;
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
-	struct dentry *dentry = filp->f_dentry;
+	struct dentry *dentry = filp->f_path.dentry;
 	struct vdfs2_sb_info *sbi = inode->i_sb->s_fs_info;
 	__u64 catalog_id = inode->i_ino;
 	int ret = 0;

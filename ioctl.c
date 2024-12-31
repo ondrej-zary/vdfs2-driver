@@ -101,7 +101,7 @@ static void mnt_writers_decrement(struct vfsmount *mnt)
 long vdfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned int flags;
-	struct inode *inode = filp->f_dentry->d_inode;
+	struct inode *inode = filp->f_path.dentry->d_inode;
 	int rc = 0;
 	struct vdfs2_sb_info *sbi =
 		((struct super_block *)inode->i_sb)->s_fs_info;
@@ -289,7 +289,7 @@ void vdfs2_destroy_high_priority(struct vdfs2_high_priority *high_priority)
 long vdfs2_dir_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
-	struct inode *inode = filp->f_dentry->d_inode;
+	struct inode *inode = filp->f_path.dentry->d_inode;
 	struct vdfs2_sb_info *sbi =
 		((struct super_block *)inode->i_sb)->s_fs_info;
 	struct super_block *sb = (struct super_block *)inode->i_sb;
@@ -377,12 +377,12 @@ long vdfs2_dir_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		f = fget(input_data.image_fd);
 		if (!f)
 			return -EBADF;
-		image_inode = f->f_dentry->d_inode;
+		image_inode = f->f_path.dentry->d_inode;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
 		f = fdget(input_data.image_fd);
 		if (!f.file)
 			return -EBADF;
-		image_inode = f.file->f_dentry->d_inode;
+		image_inode = f.file->f_path.dentry->d_inode;
 #endif
 
 
