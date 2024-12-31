@@ -2096,11 +2096,6 @@ static int vdfs2_mknod(struct inode *dir, struct dentry *dentry,
 
 	vdfs2_start_transaction(VDFS2_SB(dir->i_sb));
 
-	if (!new_valid_dev(rdev)) {
-		ret = -EINVAL;
-		goto exit;
-	}
-
 	ret = vdfs2_create(dir, dentry, mode, NULL);
 	if (ret)
 		goto exit;
