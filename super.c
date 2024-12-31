@@ -1720,7 +1720,7 @@ static int vdfs2_fill_super(struct super_block *sb, void *data, int silent)
 	mutex_init(&sbi->packtree_images.lock_pactree_list);
 	INIT_LIST_HEAD(&sbi->dirty_list_head);
 	spin_lock_init(&sbi->dirty_list_lock);
-	percpu_counter_init(&sbi->free_blocks_count, 0);
+	percpu_counter_init(&sbi->free_blocks_count, 0, GFP_KERNEL);
 	sb->s_maxbytes = VDFS2_MAX_FILE_SIZE_IN_BYTES;
 	INIT_DELAYED_WORK(&sbi->delayed_commit, vdfs2_delayed_commit);
 	ret = vdfs2_parse_options(sb, data);
