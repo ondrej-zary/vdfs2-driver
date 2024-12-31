@@ -1739,13 +1739,16 @@ static sector_t vdfs2_bmap(struct address_space *mapping, sector_t block)
  * @return			Returns error codes
  */
 static int vdfs2_rename(struct inode *old_dir, struct dentry *old_dentry,
-		struct inode *new_dir, struct dentry *new_dentry)
+		struct inode *new_dir, struct dentry *new_dentry,
+		unsigned int flags)
 {
 	struct vdfs2_find_data fd;
 	struct vdfs2_sb_info *sbi = old_dir->i_sb->s_fs_info;
 	struct inode *mv_inode = old_dentry->d_inode;
 	int ret = 0;
 	struct vdfs2_cattree_key *rm_key = NULL, *key = NULL;
+	if (flags)
+		return -EINVAL;
 	if (check_permissions(sbi))
 		return -EINTR;
 	if (new_dentry->d_name.len > VDFS2_CAT_MAX_NAME)
