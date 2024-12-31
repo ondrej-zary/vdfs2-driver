@@ -1173,10 +1173,9 @@ static const char *vdfs2_packtree_get_link(struct dentry *dentry, struct inode *
 	return (VDFS2_I(dentry->d_inode))->ptree.symlink.data;
 }
 
-static ssize_t packtree_getxattr(struct dentry *dentry, const char *name,
-	void *buffer, size_t buf_size)
+static ssize_t packtree_getxattr(struct dentry *dentry, struct inode *inode,
+	const char *name, void *buffer, size_t buf_size)
 {
-	struct inode *inode = dentry->d_inode;
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
 	struct vdfs2_sb_info *sbi = VDFS2_SB(inode->i_sb);
 	ssize_t ret = 0;

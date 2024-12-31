@@ -268,12 +268,11 @@ int vdfs2_xattrtree_remove_all(struct vdfs2_btree *tree, u64 object_id)
 	return ret;
 }
 
-int vdfs2_setxattr(struct dentry *dentry, const char *name, const void *value,
-		size_t size, int flags)
+int vdfs2_setxattr(struct dentry *dentry, struct inode *inode, const char *name,
+                const void *value, size_t size, int flags)
 {
 	int ret = 0;
 	struct vdfs2_xattrtree_record *record;
-	struct inode *inode = dentry->d_inode;
 	struct vdfs2_sb_info *sbi = VDFS2_SB(inode->i_sb);
 
 	if (name == NULL)
@@ -328,11 +327,10 @@ exit:
 	return ret;
 }
 
-ssize_t vdfs2_getxattr(struct dentry *dentry, const char *name, void *buffer,
-		size_t buf_size)
+ssize_t vdfs2_getxattr(struct dentry *dentry, struct inode *inode,
+                const char *name, void *buffer,	size_t buf_size)
 {
 	struct vdfs2_xattrtree_record *record;
-	struct inode *inode = dentry->d_inode;
 	struct vdfs2_sb_info *sbi = VDFS2_SB(inode->i_sb);
 	ssize_t size;
 
