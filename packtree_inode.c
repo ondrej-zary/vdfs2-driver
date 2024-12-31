@@ -1164,11 +1164,13 @@ int vdfs2_read_packtree_inode(struct inode *inode,
 }
 
 /**
- * The vdfs2 packtree follow link callback.
+ * The vdfs2 packtree get link callback.
  */
-static const char *vdfs2_packtree_follow_link(struct dentry *dentry, void **cookie)
+static const char *vdfs2_packtree_get_link(struct dentry *dentry, struct inode *inode,
+		struct delayed_call *dc)
+
 {
-	return *cookie = (char *)(VDFS2_I(dentry->d_inode))->ptree.symlink.data;
+	return (VDFS2_I(dentry->d_inode))->ptree.symlink.data;
 }
 
 static ssize_t packtree_getxattr(struct dentry *dentry, const char *name,
@@ -1439,5 +1441,5 @@ static const struct inode_operations vdfs2_packtree_file_inode_operations = {
  */
 static const struct inode_operations vdfs2_packtree_symlink_inode_operations = {
 	.readlink	= generic_readlink,
-	.follow_link	= vdfs2_packtree_follow_link
+	.get_link	= vdfs2_packtree_get_link
 };

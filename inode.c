@@ -2207,8 +2207,7 @@ static const struct inode_operations vdfs2_dir_inode_operations = {
  */
 static const struct inode_operations vdfs2_symlink_inode_operations = {
 	.readlink	= generic_readlink,
-	.follow_link	= page_follow_link_light,
-	.put_link	= page_put_link,
+	.get_link	= page_get_link,
 	.setattr	= vdfs2_setattr,
 
 	.setxattr	= vdfs2_setxattr,
@@ -2444,6 +2443,7 @@ static int vdfs2_fill_inode(struct inode *inode,
 		inode->i_op = &vdfs2_symlink_inode_operations;
 		inode->i_mapping->a_ops = &vdfs2_aops;
 		inode->i_fop = &vdfs2_file_operations;
+		inode_nohighmem(inode);
 
 	} else if S_ISREG(inode->i_mode) {
 		inode->i_op = &vdfs2_file_inode_operations;
@@ -2658,9 +2658,10 @@ static struct inode *vdfs2_new_inode(struct inode *dir, umode_t mode)
 
 	if (S_ISDIR(mode))
 		inode->i_op =  &vdfs2_dir_inode_operations;
-	else if (S_ISLNK(mode))
+	else if (S_ISLNK(mode)) {
 		inode->i_op = &vdfs2_symlink_inode_operations;
-	else
+		inode_nohighmem(inode);
+	} else
 		inode->i_op = &vdfs2_file_inode_operations;
 
 	inode->i_mapping->a_ops = &vdfs2_aops;
