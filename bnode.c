@@ -143,7 +143,7 @@ static struct vdfs2_bnode *__get_bnode(struct vdfs2_btree *btree,
 	if (create) {
 		__u16 poison_val;
 		__u16 max_poison_val = btree->pages_per_node <<
-			(PAGE_CACHE_SHIFT - 1);
+			(PAGE_SHIFT - 1);
 		__u16 *curr_pointer = node->data;
 
 		for (poison_val = 0; poison_val < max_poison_val;
@@ -194,7 +194,7 @@ err_exit_vunmap:
 err_exit:
 	for (i = 0; i < btree->pages_per_node; i++) {
 		if (pages[i] && !IS_ERR(pages[i]))
-			page_cache_release(pages[i]);
+			put_page(pages[i]);
 	}
 	kfree(pages);
 	kfree(node);
@@ -507,7 +507,7 @@ static void free_bnode(struct vdfs2_bnode *bnode)
 
 	vunmap(bnode->data);
 	for (i = 0; i < bnode->host->pages_per_node; i++)
-		page_cache_release(bnode->pages[i]);
+		put_page(bnode->pages[i]);
 
 	bnode->data = NULL;
 

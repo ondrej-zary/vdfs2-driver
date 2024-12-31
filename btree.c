@@ -327,7 +327,7 @@ void vdfs2_bnode_sanity_check(struct vdfs2_bnode *bnode)
 {
 	struct vdfs2_gen_node_descr *bnode_desc = VDFS2_BNODE_DSCR(bnode);
 	struct vdfs2_btree *btree = bnode->host;
-	unsigned int max_bnode_size = btree->pages_per_node * PAGE_CACHE_SIZE;
+	unsigned int max_bnode_size = btree->pages_per_node * PAGE_SIZE;
 	int record_count = le16_to_cpu(bnode_desc->recs_count);
 	int count;
 	vdfs2_bt_off_t offset, min_offset = max_bnode_size;

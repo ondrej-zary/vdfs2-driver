@@ -382,7 +382,7 @@ static int restore_exsb(struct vdfs2_sb_info *sbi, __u64 version)
 static int get_table_version(struct vdfs2_sb_info *sbi,
 		sector_t start, sector_t length, __u64 *version) {
 
-	unsigned long pages_per_table = length >> (PAGE_CACHE_SHIFT -
+	unsigned long pages_per_table = length >> (PAGE_SHIFT -
 			SECTOR_SIZE_SHIFT);
 	struct page **pages;
 	int count, ret = 0;
@@ -442,8 +442,8 @@ static int load_base_table(struct vdfs2_sb_info *sbi,
 
 	tables_size_in_bytes = sizeof(struct vdfs2_base_table) + CRC32_SIZE +
 				sizeof(__le64) * (meta__tbc >> 1);
-	pages_per_tables = DIV_ROUND_UP(tables_size_in_bytes, PAGE_CACHE_SIZE);
-	sectors_per_tables = pages_per_tables << (PAGE_CACHE_SHIFT -
+	pages_per_tables = DIV_ROUND_UP(tables_size_in_bytes, PAGE_SIZE);
+	sectors_per_tables = pages_per_tables << (PAGE_SHIFT -
 			SECTOR_SIZE_SHIFT);
 
 	ret = get_table_version(sbi, 0, sectors_per_tables, &table1_version);
@@ -463,8 +463,8 @@ static int load_base_table(struct vdfs2_sb_info *sbi,
 		tables_size_in_bytes = sizeof(struct vdfs2_base_table) +
 			CRC32_SIZE + sizeof(__le64) * (meta__tbc_copy >> 1);
 		pages_per_tables = DIV_ROUND_UP(tables_size_in_bytes,
-				PAGE_CACHE_SIZE);
-		sectors_per_tables = pages_per_tables << (PAGE_CACHE_SHIFT -
+				PAGE_SIZE);
+		sectors_per_tables = pages_per_tables << (PAGE_SHIFT -
 				SECTOR_SIZE_SHIFT);
 		ret = get_table_version(sbi, ((sector_t)table_tbc_copy >> 1) <<
 			(sbi->block_size_shift - SECTOR_SIZE_SHIFT),
@@ -497,8 +497,8 @@ static int load_base_table(struct vdfs2_sb_info *sbi,
 
 	tables_size_in_bytes = sizeof(struct vdfs2_base_table) + CRC32_SIZE +
 				sizeof(__le64) * (meta__tbc >> 1);
-	pages_per_tables = DIV_ROUND_UP(tables_size_in_bytes, PAGE_CACHE_SIZE);
-	sectors_per_tables = pages_per_tables << (PAGE_CACHE_SHIFT -
+	pages_per_tables = DIV_ROUND_UP(tables_size_in_bytes, PAGE_SIZE);
+	sectors_per_tables = pages_per_tables << (PAGE_SHIFT -
 			SECTOR_SIZE_SHIFT);
 
 	ret = restore_exsb(sbi, table_version);
@@ -619,8 +619,8 @@ int vdfs2_build_snapshot_manager(struct vdfs2_sb_info *sbi)
 	tables_size_in_bytes = sizeof(struct vdfs2_base_table) +
 		CRC32_SIZE + sizeof(__le64) * (meta_tbc >> 1);
 	pages_per_tables = DIV_ROUND_UP(tables_size_in_bytes,
-			PAGE_CACHE_SIZE);
-	sectors_per_tables = pages_per_tables << (PAGE_CACHE_SHIFT -
+			PAGE_SIZE);
+	sectors_per_tables = pages_per_tables << (PAGE_SHIFT -
 			SECTOR_SIZE_SHIFT);
 
 	for (count = 0; count < VDFS2_SNAPSHOT_EXT_TABLES; count++) {
@@ -788,7 +788,7 @@ static void update_extended_table(struct vdfs2_sb_info *sbi, ino_t ino_n,
 	new_table_size = (rec_count + 1) * sizeof(struct vdfs2_extended_record) +
 			sizeof(struct vdfs2_extended_table) + CRC32_SIZE;
 
-	if (new_table_size > PAGE_CACHE_SIZE) {
+	if (new_table_size > PAGE_SIZE) {
 		snapshot->use_base_table = 1;
 		return;
 	}
@@ -1034,7 +1034,7 @@ int vdfs2_update_translation_tables(struct vdfs2_sb_info *sbi)
 			snapshot->use_base_table) {
 		struct vdfs2_extended_super_block *exsb = VDFS2_RAW_EXSB(sbi);
 		__u32 table_ttb = le32_to_cpu(exsb->tables_tbc);
-		__u64 table_sectors_count = table_ttb << (PAGE_CACHE_SHIFT -
+		__u64 table_sectors_count = table_ttb << (PAGE_SHIFT -
 				SECTOR_SIZE_SHIFT);
 
 		type = SNAPSHOT_BASE_TABLE;
@@ -1279,7 +1279,7 @@ static int expand_translation_tables(struct vdfs2_sb_info *sbi, ino_t ino_n,
 
 	current_last_table_index = VDFS2_LAST_TABLE_INDEX(sbi, ino_n);
 	new_table_size = calculate_max_table_size(sbi);
-	new_pages_count = DIV_ROUND_UP(new_table_size, PAGE_CACHE_SIZE);
+	new_pages_count = DIV_ROUND_UP(new_table_size, PAGE_SIZE);
 
 	if (new_pages_count > current_page_count) {
 		unsigned int base_table_in_blocks, extended_table_blocks;
@@ -1441,7 +1441,7 @@ loff_t vdfs2_special_file_size(struct vdfs2_sb_info *sbi, ino_t ino_n)
 		size = (1llu << sbi->log_super_page_size) *
 			(last_page_index + 1);
 	else
-		size = PAGE_CACHE_SIZE * (last_page_index + 1);
+		size = PAGE_SIZE * (last_page_index + 1);
 
 
 	return size;

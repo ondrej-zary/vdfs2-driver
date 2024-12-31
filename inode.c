@@ -509,7 +509,7 @@ int vdfs2_get_free_inode(struct vdfs2_sb_info *sbi, ino_t *i_ino, int count)
 
 		kunmap(page);
 		unlock_page(page);
-		page_cache_release(page);
+		put_page(page);
 
 	}
 
@@ -553,7 +553,7 @@ int vdfs2_free_inode_n(struct vdfs2_sb_info *sbi, __u64 inode_n, int count)
 	vdfs2_add_chunk_bitmap(sbi, page, 1);
 	kunmap(page);
 	unlock_page(page);
-	page_cache_release(page);
+	put_page(page);
 	return 0;
 }
 
@@ -1535,7 +1535,7 @@ static int vdfs2_write_end(struct file *file, struct address_space *mapping,
 	}
 
 	unlock_page(page);
-	page_cache_release(page);
+	put_page(page);
 
 	if (i_size_changed)
 		vdfs2_write_inode_to_bnode(inode);

@@ -1473,7 +1473,7 @@ int get_quota(struct dentry *dentry);
 		<< sbi->block_size_shift)
 
 #define VDFS2_DEBUG_AREA_PAGE_COUNT(sbi) (VDFS2_DEBUG_AREA_LENGTH_BYTES(sbi) \
-		>> PAGE_CACHE_SHIFT)
+		>> PAGE_SHIFT)
 
 #define DEBUG_AREA_CRC_OFFSET(sbi) (VDFS2_DEBUG_AREA_LENGTH_BYTES(sbi) \
 			- sizeof(unsigned int))
@@ -1504,7 +1504,7 @@ int get_quota(struct dentry *dentry);
 		>> (sbi->log_blocks_in_leb + sbi->block_size_shift - \
 		PAGE_SHIFT) : page_offset)
 
-#define PAGE_TO_SECTORS(x) (x * ((1 << (PAGE_CACHE_SHIFT - SECTOR_SIZE_SHIFT))))
+#define PAGE_TO_SECTORS(x) (x * ((1 << (PAGE_SHIFT - SECTOR_SIZE_SHIFT))))
 
 /* VDFS2 mount options */
 enum vdfs2_mount_options {

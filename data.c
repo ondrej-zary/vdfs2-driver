@@ -230,8 +230,8 @@ static int get_block_meta_wrapper(struct inode *inode, pgoff_t page_index,
 		if (is_tree(inode->i_ino)) {
 			int mask;
 			mask = (1 << (sbi->log_blocks_in_leb +
-				sbi->block_size_shift - PAGE_CACHE_SHIFT)) - 1;
-			meta_iblock += (page_index & mask) << (PAGE_CACHE_SHIFT
+				sbi->block_size_shift - PAGE_SHIFT)) - 1;
+			meta_iblock += (page_index & mask) << (PAGE_SHIFT
 				- sbi->block_size_shift);
 		}
 		*res_block = 0;
@@ -241,7 +241,7 @@ static int get_block_meta_wrapper(struct inode *inode, pgoff_t page_index,
 		sector_t iblock;
 		struct buffer_head bh_result;
 		bh_result.b_blocknr = 0;
-		iblock = ((sector_t)page_index) << (PAGE_CACHE_SHIFT -
+		iblock = ((sector_t)page_index) << (PAGE_SHIFT -
 				sbi->block_size_shift);
 		ret = vdfs2_get_block(inode, iblock, &bh_result, 0);
 		*res_block = bh_result.b_blocknr;
@@ -294,7 +294,7 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 	sector_t total_sectors = sectors_count;
 	int nr_vectr, ret;
 	unsigned int count = 0, page_count = DIV_ROUND_UP(SECTOR_SIZE *
-			sectors_count, PAGE_CACHE_SIZE);
+			sectors_count, PAGE_SIZE);
 	struct blk_plug plug;
 	struct list_head wait_list_head;
 	struct vdfs2_wait_list *new_request;
@@ -341,18 +341,18 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 		list_add_tail(&new_request->list, &wait_list_head);
 		bio->bi_end_io = end_IO;
 		bio->bi_private = new_request;
-		sec_to_bio = nr_vectr << (PAGE_CACHE_SHIFT - SECTOR_SIZE_SHIFT);
+		sec_to_bio = nr_vectr << (PAGE_SHIFT - SECTOR_SIZE_SHIFT);
 
 		sec_to_bio = min(sec_to_bio, length);
 		sec_to_bio = min(sec_to_bio, (sector_t)sectors_count);
 
 		do {
 			unsigned int add_size, add_offset, index;
-			index = l_sector >> (PAGE_CACHE_SHIFT -
+			index = l_sector >> (PAGE_SHIFT -
 					SECTOR_SIZE_SHIFT);
 			add_offset = (l_sector & (SECTOR_PER_PAGE - 1)) *
 					SECTOR_SIZE;
-			add_size = min((unsigned int)PAGE_CACHE_SIZE -
+			add_size = min((unsigned int)PAGE_SIZE -
 				add_offset, (unsigned int)sec_to_bio *
 				SECTOR_SIZE);
 			size = bio_add_page(bio, pages[index], add_size,
@@ -444,10 +444,10 @@ again:
 	/* Initialize the bio */
 	for (; count < page_count; count++) {
 		if ((unsigned) bio_add_page(bio, page[count],
-				PAGE_CACHE_SIZE, 0) < PAGE_CACHE_SIZE) {
+				PAGE_SIZE, 0) < PAGE_SIZE) {
 			if (bio->bi_vcnt) {
 				continue_load = 1;
-				sector_addr += (count << (PAGE_CACHE_SHIFT -
+				sector_addr += (count << (PAGE_SHIFT -
 						SECTOR_SIZE_SHIFT));
 			} else {
 				VDFS2_ERR("FAIL to add page to BIO");
@@ -986,7 +986,7 @@ static int vdfs2_init_bitmap_page(struct vdfs2_sb_info *sbi, ino_t ino_n,
 		bitmap = kmap(page);
 		if (!bitmap)
 			return -ENOMEM;
-		memset(bitmap, 0, PAGE_CACHE_SIZE);
+		memset(bitmap, 0, PAGE_SIZE);
 		memcpy(bitmap, INODE_BITMAP_MAGIC, INODE_BITMAP_MAGIC_LEN -
 				VERSION_SIZE);
 		memcpy(bitmap + INODE_BITMAP_MAGIC_LEN - VERSION_SIZE,
@@ -996,7 +996,7 @@ static int vdfs2_init_bitmap_page(struct vdfs2_sb_info *sbi, ino_t ino_n,
 		bitmap = kmap(page);
 		if (!bitmap)
 			return -ENOMEM;
-		memset(bitmap, 0, PAGE_CACHE_SIZE);
+		memset(bitmap, 0, PAGE_SIZE);
 		memcpy(bitmap, SMALL_AREA_BITMAP_MAGIC,
 				SMALL_AREA_BITMAP_MAGIC_LEN - VERSION_SIZE);
 		memcpy(bitmap + SMALL_AREA_BITMAP_MAGIC_LEN - VERSION_SIZE,
@@ -1258,7 +1258,7 @@ static int vdfs2_meta_write(struct vdfs2_sb_info *sbi,
 	int ret;
 	struct pagevec pvec;
 	sector_t last_block = 0, block;
-	unsigned int blocks_per_page = 1 << (PAGE_CACHE_SHIFT -
+	unsigned int blocks_per_page = 1 << (PAGE_SHIFT -
 			sbi->block_size_shift);
 
 	INIT_LIST_HEAD(&wait_list_head);
@@ -1296,8 +1296,8 @@ again:
 		}
 
 		set_page_writeback(pvec.pages[index]);
-		size = bio_add_page(bio, pvec.pages[index], PAGE_CACHE_SIZE, 0);
-		if (size < PAGE_CACHE_SIZE) {
+		size = bio_add_page(bio, pvec.pages[index], PAGE_SIZE, 0);
+		if (size < PAGE_SIZE) {
 			submit_bio(WRITE_FUA, bio);
 			bio = NULL;
 			last_block = 0;
@@ -1371,7 +1371,7 @@ static int vdfs2_meta_read(struct inode *inode, int type, struct page **pages,
 	int ret = 0;
 	sector_t last_block = 0, block;
 
-	unsigned int blocks_per_page = 1 << (PAGE_CACHE_SHIFT -
+	unsigned int blocks_per_page = 1 << (PAGE_SHIFT -
 			sbi->block_size_shift);
 
 	int count;
@@ -1413,8 +1413,8 @@ again:
 			return -EINVAL;
 		}
 
-		size = bio_add_page(bio, page, PAGE_CACHE_SIZE, 0);
-		if (size < PAGE_CACHE_SIZE) {
+		size = bio_add_page(bio, page, PAGE_SIZE, 0);
+		if (size < PAGE_SIZE) {
 			submit_bio(READ, bio);
 			bio = NULL;
 			goto again;
@@ -1506,9 +1506,9 @@ int vdfs2_read_or_create_pages(struct vdfs2_sb_info *sbi, struct inode *inode,
 			if (!bh_result)
 				return -ENOMEM;
 
-			iblock = ((sector_t)index) << (PAGE_CACHE_SHIFT -
+			iblock = ((sector_t)index) << (PAGE_SHIFT -
 					sbi->block_size_shift);
-			iblock += (((sector_t)1) << (PAGE_CACHE_SHIFT -
+			iblock += (((sector_t)1) << (PAGE_SHIFT -
 					sbi->block_size_shift)) - 1;
 
 			ret = vdfs2_get_block(inode, iblock, bh_result, 1);
@@ -1543,7 +1543,7 @@ again:
 			ret = add_to_page_cache_lru(page, mapping,
 					index + count, GFP_KERNEL);
 			if (unlikely(ret)) {
-				page_cache_release(page);
+				put_page(page);
 				goto again;
 			}
 			/* this flag indicates that pages are from disk.*/
@@ -1590,14 +1590,14 @@ exit_alloc_page:
 	VDFS2_ERR("Error in allocate page");
 	for (; count > 0; count--) {
 		unlock_page(pages[count - 1]);
-		page_cache_release(pages[count - 1]);
+		put_page(pages[count - 1]);
 	}
 	return ret;
 exit_alloc_locked_page:
 	VDFS2_ERR("Error in init bitmap page");
 	for (; count >= 0; count--) {
 		unlock_page(pages[count]);
-		page_cache_release(pages[count]);
+		put_page(pages[count]);
 	}
 	return ret;
 exit_validate_page:
@@ -1644,7 +1644,7 @@ struct page *vdfs2_read_or_create_small_area_page(struct inode *inode,
 		return ERR_PTR(err);
 
 	for (i = 1; i < count; i++)
-		page_cache_release(pages[i]);
+		put_page(pages[i]);
 
 	return pages[0];
 }
@@ -1678,7 +1678,7 @@ int vdfs2_mpage_writepage(struct page *page,
 	struct buffer_head *bh;
 	loff_t i_size = i_size_read(inode);
 	memset(&extent, 0x0, sizeof(extent));
-	block_in_file = (sector_t)page->index << (PAGE_CACHE_SHIFT - blkbits);
+	block_in_file = (sector_t)page->index << (PAGE_SHIFT - blkbits);
 	blocksize = 1 << inode->i_blkbits;
 	if (page_has_buffers(page)) {
 		bh = page_buffers(page);
@@ -1735,7 +1735,7 @@ int vdfs2_mpage_writepage(struct page *page,
 	}
 
 	boundary_block = bh->b_blocknr;
-	end_index = i_size >> PAGE_CACHE_SHIFT;
+	end_index = i_size >> PAGE_SHIFT;
 	if (page->index >= end_index) {
 		/*
 		 * The page straddles i_size.  It must be zeroed out on each
@@ -1745,11 +1745,11 @@ int vdfs2_mpage_writepage(struct page *page,
 		 * is zeroed when mapped, and writes to that region are not
 		 * written out to the file."
 		 */
-		unsigned offset = i_size & (PAGE_CACHE_SIZE - 1);
+		unsigned offset = i_size & (PAGE_SIZE - 1);
 
 		if (page->index > end_index || !offset)
 			goto confused;
-		zero_user_segment(page, offset, PAGE_CACHE_SIZE);
+		zero_user_segment(page, offset, PAGE_SIZE);
 	}
 
 	/*

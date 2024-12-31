@@ -814,7 +814,7 @@ int vdfs2_log_error(struct vdfs2_sb_info *sbi, unsigned int line,
 
 	BUG_ON(((void *)new_record - (void *)debug_area
 		+ sizeof(struct vdfs2_debug_record) + sizeof(checksum))
-		> debug_page_count * PAGE_CACHE_SIZE);
+		> debug_page_count * PAGE_SIZE);
 
 	memset(new_record, 0, sizeof(*new_record));
 	new_record->error_code = cpu_to_le32(err);
@@ -831,7 +831,7 @@ int vdfs2_log_error(struct vdfs2_sb_info *sbi, unsigned int line,
 	offset += sizeof(struct vdfs2_debug_record);
 	/* check if we have space for next record*/
 	if ((offset + sizeof(struct vdfs2_debug_record) + sizeof(checksum))
-			>=  debug_page_count * PAGE_CACHE_SIZE)
+			>=  debug_page_count * PAGE_SIZE)
 		offset = sizeof(struct vdfs2_debug_descriptor);
 
 	debug_descriptor->offset_to_next_record = cpu_to_le32(offset);
@@ -844,8 +844,8 @@ int vdfs2_log_error(struct vdfs2_sb_info *sbi, unsigned int line,
 		set_page_writeback(debug_pages[count]);
 		ret = vdfs2_write_page(sbi, debug_pages[count],
 			((VDFS2_DEBUG_AREA_START(sbi)) <<
-			(PAGE_CACHE_SHIFT - SECTOR_SIZE_SHIFT)) +
-			 + (count << (PAGE_CACHE_SHIFT - SECTOR_SIZE_SHIFT)),
+			(PAGE_SHIFT - SECTOR_SIZE_SHIFT)) +
+			 + (count << (PAGE_SHIFT - SECTOR_SIZE_SHIFT)),
 			 sbi->block_size / SECTOR_SIZE, 0, 1);
 		unlock_page(debug_pages[count]);
 		if (ret)
@@ -943,7 +943,7 @@ static int vdfs2_load_debug_area(struct super_block *sb)
 	}
 
 	ret = vdfs2_read_pages(sb->s_bdev, debug_pages,
-		VDFS2_DEBUG_AREA_START(sbi) << (PAGE_CACHE_SHIFT -
+		VDFS2_DEBUG_AREA_START(sbi) << (PAGE_SHIFT -
 		SECTOR_SIZE_SHIFT), debug_page_count);
 
 	for (count = 0; count < debug_page_count; count++)
@@ -985,9 +985,9 @@ static int vdfs2_load_debug_area(struct super_block *sb)
 			sector_t sector_to_write;
 
 			sector_to_write = VDFS2_DEBUG_AREA_START(sbi) <<
-					(PAGE_CACHE_SHIFT - SECTOR_SIZE_SHIFT);
+					(PAGE_SHIFT - SECTOR_SIZE_SHIFT);
 
-			sector_to_write += count << (PAGE_CACHE_SHIFT -
+			sector_to_write += count << (PAGE_SHIFT -
 					SECTOR_SIZE_SHIFT);
 
 			ret = vdfs2_write_page(sbi, debug_pages[count],

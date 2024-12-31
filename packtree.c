@@ -613,7 +613,7 @@ struct inode *vdfs2_get_packtree_indirect_inode(struct super_block *sb,
 	memcpy(&coord, &data[offset & (PAGE_SIZE - 1)], sizeof(coord));
 	kunmap(page);
 	unlock_page(page);
-	page_cache_release(page);
+	put_page(page);
 	/*
 	printk(KERN_ERR "vdfs2_get_packtree_indirect_inode %d bnode %d rec_i %d",
 		(int)key->ino, (int)coord.bnode_id, (int)coord.record_i);*/
@@ -675,7 +675,7 @@ int vdfs2_read_squashfs_image_simple(struct inode *inode, __u64 offset, __u32 le
 exit:
 	for (i = 0; i < pages_cnt; i++)
 		if (pages[i] && !IS_ERR(pages[i]))
-			page_cache_release(pages[i]);
+			put_page(pages[i]);
 	kfree(pages);
 	return ret;
 }

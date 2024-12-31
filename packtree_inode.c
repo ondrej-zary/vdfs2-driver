@@ -207,7 +207,7 @@ again:
 				count--;
 				for (; count >= 0; count--) {
 					unlock_page(opages[count]);
-					page_cache_release(opages[count]);
+					put_page(opages[count]);
 				}
 				kfree(opages);
 				return ERR_PTR(-ENOMEM);
@@ -215,7 +215,7 @@ again:
 			ret = add_to_page_cache_lru(page, mapping,
 					index + count, GFP_KERNEL);
 			if (unlikely(ret)) {
-				page_cache_release(page);
+				put_page(page);
 				goto again;
 			}
 		}
@@ -526,7 +526,7 @@ exit:
 	vm_unmap_ram(mapped_packed_pages, packed_page_count);
 exit_no_vmem:
 	for (count = 0; count < packed_page_count; count++)
-		page_cache_release(packed_pages[count]);
+		put_page(packed_pages[count]);
 exit_free_packed_page:
 	kfree(packed_pages);
 exit_read_hw:
@@ -542,7 +542,7 @@ exit_read_hw:
 		if (!PageError(opages[count]))
 			SetPageUptodate(opages[count]);
 		unlock_page(opages[count]);
-		page_cache_release(opages[count]);
+		put_page(opages[count]);
 	}
 	kfree(opages);
 
@@ -563,7 +563,7 @@ static int get_packtree_data_page(struct page *page, __u32 chunk_index,
 	__u32 offset_in_unpacked_page, offset_in_page = 0;
 
 	unpacked_page_index = (((chunk_index << sq_block_size_shift) + offset)
-			>> PAGE_CACHE_SHIFT) + page->index;
+			>> PAGE_SHIFT) + page->index;
 
 	offset_in_unpacked_page = offset & (PAGE_SIZE - 1);
 	length -= page->index * PAGE_SIZE;
@@ -575,7 +575,7 @@ get_page:
 		ret = read_and_unpack_chunk(ptree_info,
 				ptree_info->unpacked_inode, chunk_index,
 				(chunk_index << (sq_block_size_shift -
-				PAGE_CACHE_SHIFT)), 1);
+				PAGE_SHIFT)), 1);
 		if (ret) {
 			SetPageError(page);
 			VDFS2_ERR("read_and_unpack_chunk failed %d", ret);
@@ -587,7 +587,7 @@ get_page:
 	if (!PageUptodate(unpacked_page)) {
 		VDFS2_ERR("Got locked but not uptodated page");
 		unlock_page(unpacked_page);
-		page_cache_release(unpacked_page);
+		put_page(unpacked_page);
 		SetPageError(page);
 		goto exit;
 	}
@@ -614,7 +614,7 @@ get_page:
 		kunmap(page);
 		kunmap(unpacked_page);
 		unlock_page(unpacked_page);
-		page_cache_release(unpacked_page);
+		put_page(unpacked_page);
 
 		unpacked_page_index++;
 		length = length - PAGE_SIZE + offset_in_unpacked_page;
@@ -625,7 +625,7 @@ get_page:
 	kunmap(page);
 	kunmap(unpacked_page);
 	unlock_page(unpacked_page);
-	page_cache_release(unpacked_page);
+	put_page(unpacked_page);
 
 	SetPageUptodate(page);
 exit:
@@ -659,7 +659,7 @@ static int vdfs2_read_inline_file_page(struct page *page)
 		flush_dcache_page(page);
 		SetPageUptodate(page);
 		unlock_page(page);
-		page_cache_release(page);
+		put_page(page);
 	}
 	return 0;
 }
@@ -676,8 +676,8 @@ static int vdfs2_packtree_readpage(struct file *file, struct page *page)
 	void *pageaddr;
 	int rc = 0;
 
-	if (page->index >= ((i_size_read(inode) + PAGE_CACHE_SIZE - 1) >>
-					PAGE_CACHE_SHIFT))
+	if (page->index >= ((i_size_read(inode) + PAGE_SIZE - 1) >>
+					PAGE_SHIFT))
 		goto out;
 
 	if (VDFS2_I(inode)->record_type == VDFS2_CATALOG_PTREE_FILE_INLINE) {
@@ -718,7 +718,7 @@ static int vdfs2_packtree_readpage(struct file *file, struct page *page)
 
 out:
 	pageaddr = kmap_atomic(page);
-	memset(pageaddr, 0, PAGE_CACHE_SIZE);
+	memset(pageaddr, 0, PAGE_SIZE);
 	kunmap_atomic(pageaddr);
 	flush_dcache_page(page);
 	if (!PageError(page))
@@ -744,7 +744,7 @@ static int fragment_file_readpages(struct page **pages_for_vmap,
 	struct address_space *unpacked_mapping =
 			ptree_info->unpacked_inode->i_mapping;
 	__u32 offset = VDFS2_I(inode)->ptree.frag.unpacked_offset +
-			(pages_for_vmap[0]->index << PAGE_CACHE_SHIFT);
+			(pages_for_vmap[0]->index << PAGE_SHIFT);
 
 	mapped_pages = vmap(pages_for_vmap, nr_pages, VM_MAP, PAGE_KERNEL);
 	if (!mapped_pages) {
@@ -754,7 +754,7 @@ static int fragment_file_readpages(struct page **pages_for_vmap,
 	}
 
 	chunk_page_num = (chunk_index << sq_block_size_shift)
-			>> PAGE_CACHE_SHIFT;
+			>> PAGE_SHIFT;
 
 	unpacked_pages = kzalloc(TOTAL_PAGES * sizeof(struct page *),
 			GFP_KERNEL);
@@ -771,7 +771,7 @@ again:
 		ret = read_and_unpack_chunk(ptree_info,
 				ptree_info->unpacked_inode, chunk_index,
 				(chunk_index << sq_block_size_shift)
-				>> PAGE_CACHE_SHIFT);
+				>> PAGE_SHIFT);
 		if (ret)
 			goto exit;
 		goto again;
@@ -784,7 +784,7 @@ again:
 	if (!unpacked_mapped_pages) {
 		ret = -ENOMEM;
 		for (i = 0; i < TOTAL_PAGES; i++) {
-			page_cache_release(unpacked_pages[i]);
+			put_page(unpacked_pages[i]);
 			unlock_page(unpacked_pages[i]);
 		}
 		goto exit;
@@ -796,14 +796,14 @@ again:
 	vunmap(unpacked_mapped_pages);
 
 	for (i = 0; i < TOTAL_PAGES; i++) {
-		page_cache_release(unpacked_pages[i]);
+		put_page(unpacked_pages[i]);
 		unlock_page(unpacked_pages[i]);
 	}
 exit:
 	vunmap(mapped_pages);
 	for (i = 0; i < nr_pages; i++) {
 		SetPageUptodate(pages_for_vmap[i]);
-		page_cache_release(pages_for_vmap[i]);
+		put_page(pages_for_vmap[i]);
 		unlock_page(pages_for_vmap[i]);
 	}
 	kfree(unpacked_pages);
@@ -832,7 +832,7 @@ static int vdfs2_packtree_readpages(struct file *filp,
 
 
 	if (VDFS2_I(inode)->record_type == VDFS2_CATALOG_PTREE_FILE_FRAGMENT)
-		page_count = (i_size_read(inode) >> PAGE_CACHE_SHIFT) + 1;
+		page_count = (i_size_read(inode) >> PAGE_SHIFT) + 1;
 
 	pages_for_vmap =
 		kzalloc(page_count * sizeof(struct page *), GFP_KERNEL);
@@ -853,7 +853,7 @@ again:
 		if (ret == -EEXIST) {
 			page = find_get_page(mapping, page->index);
 			if (page)
-				page_cache_release(page);
+				put_page(page);
 			goto again;
 
 		} else if (ret)
@@ -881,7 +881,7 @@ again2:
 			ret = add_to_page_cache_lru(page, mapping, index,
 					GFP_KERNEL);
 			if (unlikely(ret)) {
-				page_cache_release(page);
+				put_page(page);
 				goto again2;
 			}
 		} else

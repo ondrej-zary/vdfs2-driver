@@ -451,7 +451,7 @@ fail:
 	if (fsm->pages) {
 		for (page_index = 0; page_index < fsm->page_count; page_index++)
 			if (!IS_ERR(fsm->pages[page_index]))
-				page_cache_release(fsm->pages[page_index]);
+				put_page(fsm->pages[page_index]);
 fail_no_release:
 		kfree(fsm->pages);
 	}
@@ -480,7 +480,7 @@ void vdfs2_fsm_destroy_management(struct super_block *sb)
 
 	vunmap((void *)fsm->data);
 	for (page_index = 0; page_index < fsm->page_count; page_index++)
-		page_cache_release(fsm->pages[page_index]);
+		put_page(fsm->pages[page_index]);
 
 	iput(fsm->bitmap_inode);
 

@@ -107,7 +107,7 @@ again:
 		ret = read_tiny_small_page(page);
 		if (ret) {
 			unlock_page(page);
-			page_cache_release(page);
+			put_page(page);
 			return ERR_PTR(ret);
 		}
 		lock_page(page);
@@ -187,7 +187,7 @@ int vdfs2_get_free_cell(struct vdfs2_sb_info *sbi, u64 *cell_num)
 			*cell_num = ULLONG_MAX;
 		kunmap(page);
 		unlock_page(page);
-		page_cache_release(page);
+		put_page(page);
 		page_index++;
 	}
 exit:
@@ -232,7 +232,7 @@ int vdfs2_free_cell(struct vdfs2_sb_info *sbi, __u64 cell_n)
 	vdfs2_add_chunk_bitmap(sbi, page, 1);
 	kunmap(page);
 	unlock_page(page);
-	page_cache_release(page);
+	put_page(page);
 
 exit:
 	return ret;
@@ -251,8 +251,8 @@ static unsigned vdfs2_pagevec_lookup_first_page(struct pagevec *pvec,
 		page_index = writeback_index;
 		end = -1;
 	} else {
-		page_index = wbc->range_start >> PAGE_CACHE_SHIFT;
-		end = wbc->range_end >> PAGE_CACHE_SHIFT;
+		page_index = wbc->range_start >> PAGE_SHIFT;
+		end = wbc->range_end >> PAGE_SHIFT;
 
 	}
 	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
@@ -592,7 +592,7 @@ int write_tiny_small_page(struct page *page, struct writeback_control *wbc)
 		kunmap(small_area_page);
 		set_page_dirty(small_area_page);
 		unlock_page(small_area_page);
-		page_cache_release(small_area_page);
+		put_page(small_area_page);
 
 
 		err = vdfs2_write_inode_to_bnode(inode);
@@ -678,7 +678,7 @@ int read_tiny_small_page(struct page *page)
 
 		kunmap(small_area_page);
 		unlock_page(small_area_page);
-		page_cache_release(small_area_page);
+		put_page(small_area_page);
 	}
 
 exit:
@@ -838,7 +838,7 @@ static ssize_t write_small_file_page(struct writeback_control *wbc,
 		if (ret) {
 			unlock_page(page);
 			end_page_writeback(page);
-			page_cache_release(page);
+			put_page(page);
 			goto exit;
 		}
 
@@ -850,7 +850,7 @@ static ssize_t write_small_file_page(struct writeback_control *wbc,
 				sbi->block_size >> SECTOR_SIZE_SHIFT, 0, sync);
 			if (ret) {
 				unlock_page(page);
-				page_cache_release(page);
+				put_page(page);
 				goto exit;
 			}
 		} else
@@ -860,7 +860,7 @@ static ssize_t write_small_file_page(struct writeback_control *wbc,
 		set_page_dirty(page);
 
 	unlock_page(page);
-	page_cache_release(page);
+	put_page(page);
 	if (inode_info->small.len < len)
 		inode_info->small.len = len;
 	/* if writing buffer is above the file size */
@@ -1048,14 +1048,14 @@ ssize_t process_tiny_small_file(struct kiocb *iocb, struct iov_iter *from)
 	else {
 		mutex_unlock(&VDFS2_I(inode)->truncate_mutex);
 		unlock_page(page);
-		page_cache_release(page);
+		put_page(page);
 		vdfs2_stop_transaction(sbi);
 		ret = generic_file_write_iter(iocb, from);
 		goto exit;
 	}
 	mutex_unlock(&VDFS2_I(inode)->truncate_mutex);
 	unlock_page(page);
-	page_cache_release(page);
+	put_page(page);
 	vdfs2_stop_transaction(sbi);
 exit:
 	return ret;
