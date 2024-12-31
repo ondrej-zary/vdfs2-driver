@@ -1166,12 +1166,9 @@ int vdfs2_read_packtree_inode(struct inode *inode,
 /**
  * The vdfs2 packtree follow link callback.
  */
-static void *vdfs2_packtree_follow_link(struct dentry *dentry,
-		struct nameidata *nd)
+static const char *vdfs2_packtree_follow_link(struct dentry *dentry, void **cookie)
 {
-	nd_set_link(nd, (char *)
-			(VDFS2_I(dentry->d_inode))->ptree.symlink.data);
-	return NULL;
+	return *cookie = (char *)(VDFS2_I(dentry->d_inode))->ptree.symlink.data;
 }
 
 static ssize_t packtree_getxattr(struct dentry *dentry, const char *name,
