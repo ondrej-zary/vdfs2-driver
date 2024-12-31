@@ -4,6 +4,7 @@
 #include <linux/mpage.h>
 #include <linux/writeback.h>
 #include <linux/buffer_head.h>
+#include <linux/uio.h>
 
 #include "vdfs2.h"
 
@@ -727,17 +728,17 @@ static ssize_t write_tiny_small_file(struct kiocb *iocb,
 		goto exit;
 	}
 	ret = __copy_from_user_inatomic(data + iocb->ki_pos,
-			from->iov->iov_base, iocb->ki_nbytes);
+			from->iov->iov_base, iov_iter_count(from));
 	kunmap(page);
 	set_page_dirty(page);
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE)) {
-		inode_info->tiny.len = iocb->ki_pos + iocb->ki_nbytes;
+		inode_info->tiny.len = iocb->ki_pos + iov_iter_count(from);
 		/* update i_size only if it's smaller than tiny.len */
 		if (inode_info->tiny.i_size < inode_info->tiny.len)
 			inode_info->tiny.i_size = inode_info->tiny.len;
 		i_size_write(inode, inode_info->tiny.i_size);
 	} else if (is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
-		inode_info->small.len = iocb->ki_pos + iocb->ki_nbytes;
+		inode_info->small.len = iocb->ki_pos + iov_iter_count(from);
 		/* update i_size only if it's smaller than small.len */
 		if (inode_info->small.i_size < inode_info->small.len)
 			inode_info->small.i_size = inode_info->small.len;
@@ -754,7 +755,7 @@ static ssize_t write_tiny_small_file(struct kiocb *iocb,
 	}
 	ret = vdfs2_write_inode_to_bnode(inode);
 	if (!IS_ERR_VALUE(ret))
-		ret = iocb->ki_nbytes;
+		ret = iov_iter_count(from);
 #ifdef CONFIG_VDFS2_QUOTA
 	else if (inode_info->quota_index != -1 &&
 			is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
@@ -765,7 +766,7 @@ static ssize_t write_tiny_small_file(struct kiocb *iocb,
 	}
 #endif
 
-	iocb->ki_pos += iocb->ki_nbytes;
+	iocb->ki_pos += iov_iter_count(from);
 exit:
 	return ret;
 }
@@ -908,18 +909,18 @@ static ssize_t convert_tiny_file_to_small_file(struct kiocb *iocb,
 	len = inode_info->tiny.len;
 	/* copy user data */
 	ret = __copy_from_user_inatomic(data + iocb->ki_pos,
-		from->iov->iov_base, iocb->ki_nbytes);
+		from->iov->iov_base, iov_iter_count(from));
 	/* convert tiny inode info to small inode info */
 	memset(&inode_info->tiny, 0, sizeof(inode_info->small));
 	inode_info->small.cell = ULLONG_MAX;
 	clear_vdfs2_inode_flag(inode, TINY_FILE);
 	set_vdfs2_inode_flag(inode, SMALL_FILE);
 	atomic64_dec(&sbi->tiny_files_counter);
-	iocb->ki_pos = iocb->ki_pos + iocb->ki_nbytes;
+	iocb->ki_pos = iocb->ki_pos + iov_iter_count(from);
 	inode_info->small.i_size = i_size_read(inode);
-	inode_info->small.len =  len + iocb->ki_nbytes;
+	inode_info->small.len =  len + iov_iter_count(from);
 	/* if data was written successfully */
-	ret = iocb->ki_nbytes;
+	ret = iov_iter_count(from);
 	if (iocb->ki_pos > inode_info->small.len)
 		inode_info->small.len = iocb->ki_pos;
 	/* update i_size only if it's smaller than small.len */
@@ -1075,12 +1076,12 @@ static ssize_t process_tiny_file(struct kiocb *iocb, struct iov_iter *from,
 		return -EINVAL;
 
 	/*The target file is tiny and writing data is placed in metadata */
-	if (iocb->ki_pos + iocb->ki_nbytes <= TINY_DATA_SIZE)
+	if (iocb->ki_pos + iov_iter_count(from) <= TINY_DATA_SIZE)
 		ret = write_tiny_small_file(iocb, from, page);
 
 	/* The target file is tiny and writing data isn't placed in metadata,
 	 * but placed in small area cell*/
-	else if ((iocb->ki_pos + iocb->ki_nbytes <=
+	else if ((iocb->ki_pos + iov_iter_count(from) <=
 			VDFS2_SB(INODE(iocb)->i_sb)->small_area->cell_size) &&
 			(test_option(sbi, TINYSMALL) != 0))
 		ret = convert_tiny_file_to_small_file(iocb, from, page);
@@ -1107,7 +1108,7 @@ static ssize_t process_small_file(struct kiocb *iocb, struct iov_iter *from,
 	if (unlikely(iocb->ki_filp->f_flags & O_DIRECT))
 		return -EINVAL;
 	/* The target file is small, data is placed at small area cell */
-	if (iocb->ki_pos + iocb->ki_nbytes <=
+	if (iocb->ki_pos + iov_iter_count(from) <=
 			VDFS2_SB(INODE(iocb)->i_sb)->small_area->cell_size) {
 		ret = write_tiny_small_file(iocb, from, page);
 	/* The target file is small, data isn't placed at small area cell */

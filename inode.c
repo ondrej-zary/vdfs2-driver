@@ -2306,7 +2306,7 @@ static ssize_t vdfs2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	if (check_permissions((struct vdfs2_sb_info *)inode->i_sb->s_fs_info))
 		return -EINTR;
 again:
-	/* We are trying to write iocb->ki_nbytes bytes from iov->iov_base */
+	/* We are trying to write iov_iter_count(from) bytes from iov->iov_base */
 	/* The target file is tiny or small */
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE) ||
 		is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
