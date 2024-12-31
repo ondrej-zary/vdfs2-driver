@@ -136,7 +136,7 @@ long vdfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto mnt_drop_write_exit;
 		}
 
-		mutex_lock(&inode->i_mutex);
+		inode_lock(inode);
 
 		/*
 		 * The IMMUTABLE flag can only be changed by the relevant
@@ -167,7 +167,7 @@ long vdfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		vdfs2_stop_transaction(sbi);
 
 unlock_inode_exit:
-		mutex_unlock(&inode->i_mutex);
+		inode_unlock(inode);
 mnt_drop_write_exit:
 		mnt_writers_decrement(filp->f_path.mnt);
 		return rc;

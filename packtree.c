@@ -431,17 +431,17 @@ static int update_dentry_with_inode(struct dentry *parent,
 
 	/* TODO: possible wrong locking-class I_MUTEX_CHILD, change in case
 	 * of locking problems */
-	mutex_lock_nested(&parent->d_inode->i_mutex, I_MUTEX_CHILD);
+	inode_lock_nested(parent->d_inode, I_MUTEX_CHILD);
 	dentry = lookup_one_len(name, parent, len);
 
 	if (dentry->d_inode) {
-		mutex_unlock(&parent->d_inode->i_mutex);
+		inode_unlock(parent->d_inode);
 		return 0;
 	}
 
 	d_instantiate(dentry, install_inode);
 	dput(dentry);
-	mutex_unlock(&parent->d_inode->i_mutex);
+	inode_unlock(parent->d_inode);
 	return ret;
 }
 
