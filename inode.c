@@ -2352,9 +2352,7 @@ static ssize_t vdfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
  */
 static const struct file_operations vdfs2_file_operations = {
 	.llseek		= generic_file_llseek,
-	.read		= new_sync_read,
 	.read_iter	= vdfs2_file_read_iter,
-	.write		= new_sync_write,
 	.write_iter	= vdfs2_file_write_iter,
 	.mmap		= generic_file_mmap,
 	.open		= vdfs2_file_open,

@@ -64,7 +64,6 @@ static int vdfs2_packtree_file_release(struct inode *inode, struct file *file)
 
 const struct file_operations vdfs2_packtree_fops = {
 	.llseek		= generic_file_llseek,
-	.read		= new_sync_read,
 	.read_iter	= generic_file_read_iter,
 	.mmap		= generic_file_readonly_mmap,
 	.splice_read	= generic_file_splice_read,
