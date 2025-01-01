@@ -41,6 +41,8 @@ static const struct inode_operations vdfs2_packtree_dir_inode_operations;
 static const struct inode_operations vdfs2_packtree_file_inode_operations;
 static const struct inode_operations vdfs2_packtree_symlink_inode_operations;
 static const struct inode_operations vdfs2_packtree_root_dir_inode_operations;
+static ssize_t packtree_getxattr(struct dentry *dentry, struct inode *inode,
+	const char *name, void *buffer, size_t buf_size);
 
 static int vdfs2_packtree_file_open(struct inode *inode, struct file *filp)
 {
@@ -1122,6 +1124,7 @@ int vdfs2_read_packtree_inode(struct inode *inode,
 		inode->i_fop = &vdfs2_dir_operations;
 	} else if (rec_type == VDFS2_CATALOG_PTREE_FOLDER) {
 		inode->i_op = &vdfs2_packtree_dir_inode_operations;
+		inode->i_private = packtree_getxattr;
 		inode->i_fop = &vdfs2_dir_operations;
 		inode->i_mode |= S_IFDIR;
 	} else if (rec_type == VDFS2_CATALOG_PTREE_SYMLINK) {
@@ -1130,19 +1133,23 @@ int vdfs2_read_packtree_inode(struct inode *inode,
 		inode->i_mode |= S_IFLNK;
 	} else if (rec_type == VDFS2_CATALOG_PTREE_BLKDEV) {
 		inode->i_mode |= S_IFBLK;
+		inode->i_opflags &= ~IOP_XATTR;
 		init_special_inode(inode, inode->i_mode, new_decode_dev(
 			le32_to_cpu(((struct vdfs2_pack_device_value *)
 				get_value_pointer(key))->rdev)));
 	} else if (rec_type == VDFS2_CATALOG_PTREE_CHRDEV) {
 		inode->i_mode |= S_IFCHR;
+		inode->i_opflags &= ~IOP_XATTR;
 		init_special_inode(inode, inode->i_mode, new_decode_dev(
 			le32_to_cpu(((struct vdfs2_pack_device_value *)
 				get_value_pointer(key))->rdev)));
 	} else if (rec_type == VDFS2_CATALOG_PTREE_FIFO) {
 		inode->i_mode |= S_IFIFO;
+		inode->i_opflags &= ~IOP_XATTR;
 		init_special_inode(inode, inode->i_mode, 0);
 	} else if (rec_type == VDFS2_CATALOG_PTREE_SOCKET) {
 		inode->i_mode |= S_IFSOCK;
+		inode->i_opflags &= ~IOP_XATTR;
 		init_special_inode(inode, inode->i_mode, 0);
 	} else {
 		if (rec_type == VDFS2_CATALOG_PTREE_FILE_INLINE)
@@ -1155,6 +1162,7 @@ int vdfs2_read_packtree_inode(struct inode *inode,
 			BUG();
 
 		inode->i_op = &vdfs2_packtree_file_inode_operations;
+		inode->i_private = packtree_getxattr;
 		inode->i_mapping->a_ops = &vdfs2_packtree_aops;
 		inode->i_fop = &vdfs2_packtree_fops;
 		inode->i_mode |= S_IFREG;
@@ -1404,9 +1412,6 @@ static ssize_t packtree_listxattr(struct dentry *dentry, char *buffer,
  */
 static const struct inode_operations vdfs2_packtree_root_dir_inode_operations = {
 	.lookup		= vdfs2_lookup,
-	.setxattr	= vdfs2_setxattr,
-	.getxattr	= vdfs2_getxattr,
-	.removexattr	= vdfs2_removexattr,
 	.listxattr	= vdfs2_listxattr,
 };
 
@@ -1415,7 +1420,6 @@ static const struct inode_operations vdfs2_packtree_root_dir_inode_operations = 
  */
 static const struct inode_operations vdfs2_packtree_dir_inode_operations = {
 	.lookup		= vdfs2_lookup,
-	.getxattr	= packtree_getxattr,
 	.listxattr	= packtree_listxattr,
 };
 
@@ -1431,7 +1435,6 @@ static const struct address_space_operations vdfs2_packtree_aops = {
  * The vdfs2 packtree file inode operations.
  */
 static const struct inode_operations vdfs2_packtree_file_inode_operations = {
-	.getxattr	= packtree_getxattr,
 	.listxattr	= packtree_listxattr,
 };
 

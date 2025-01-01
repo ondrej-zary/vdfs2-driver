@@ -1365,12 +1365,14 @@ void vdfs2_destroy_high_priority(struct vdfs2_high_priority *high_priority);
 int check_permissions(struct vdfs2_sb_info *sbi);
 
 /* xattr.c */
+extern const struct xattr_handler *vdfs2_xattr_handlers[];
 int vdfs2_setxattr(struct dentry *dentry, struct inode *inode, const char *name,
 		const void *value, size_t size, int flags);
 
 ssize_t vdfs2_getxattr(struct dentry *dentry, struct inode *inode,
 		const char *name, void *buffer, size_t size);
-int vdfs2_removexattr(struct dentry *dentry, const char *name);
+int vdfs2_removexattr(struct dentry *dentry, struct inode *inode,
+		const char *name);
 
 int vdfs2_xattrtree_cmpfn(struct vdfs2_generic_key *__key1,
 		struct vdfs2_generic_key *__key2);

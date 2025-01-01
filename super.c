@@ -1767,6 +1767,7 @@ static int vdfs2_fill_super(struct super_block *sb, void *data, int silent)
 	/*vdfs2_debug_print_sb(sbi)*/;
 
 	sb->s_op = &vdfs2_sops;
+	sb->s_xattr = vdfs2_xattr_handlers;
 #ifdef CONFIG_VDFS2_NFS_SUPPORT
 	sb->s_export_op = &vdfs2_export_ops;
 #endif

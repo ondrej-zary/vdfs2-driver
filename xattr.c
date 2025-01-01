@@ -368,9 +368,9 @@ exit:
 }
 
 
-int vdfs2_removexattr(struct dentry *dentry, const char *name)
+int vdfs2_removexattr(struct dentry *dentry, struct inode *inode,
+                const char *name)
 {
-	struct inode *inode = dentry->d_inode;
 	struct vdfs2_sb_info *sbi = VDFS2_SB(inode->i_sb);
 	int ret = 0;
 	if (strcmp(name, "") == 0)
@@ -467,6 +467,45 @@ int vdfs2_init_security_xattrs(struct inode *inode,
 
 	return ret;
 }
+
+static int vdfs2_xattr_get(const struct xattr_handler *handler,
+			     struct dentry *dentry, struct inode *inode,
+			     const char *name, void *buffer, size_t size)
+{
+	if (inode->i_private) /* packtree */ {
+	        ssize_t (*packtree_getxattr)(struct dentry *, struct inode *,
+	                        const char *, void *, size_t);
+	        packtree_getxattr = inode->i_private;
+		return packtree_getxattr(dentry, inode, name, buffer, size);
+	} else
+		return vdfs2_getxattr(dentry, inode, name, buffer, size);
+}
+
+static int vdfs2_xattr_set(const struct xattr_handler *handler,
+			     struct dentry *dentry, struct inode *inode,
+			     const char *name, const void *value, size_t size,
+			     int flags)
+{
+	if (inode->i_private) /* packtree */
+		return -EOPNOTSUPP;
+	if (value)
+		return vdfs2_setxattr(dentry, inode, name, value, size, flags);
+	else {
+		BUG_ON(flags != XATTR_REPLACE);
+		return vdfs2_removexattr(dentry, inode, name);
+	}
+}
+
+const struct xattr_handler vdfs2_xattr_handler = {
+	.prefix = "",  /* match anything */
+	.get = vdfs2_xattr_get,
+	.set = vdfs2_xattr_set,
+};
+
+const struct xattr_handler *vdfs2_xattr_handlers[] = {
+	&vdfs2_xattr_handler,
+	NULL
+};
 
 #ifdef CONFIG_VDFS2_QUOTA
 int update_has_quota(struct vdfs2_sb_info *sbi, u64 ino, int index)

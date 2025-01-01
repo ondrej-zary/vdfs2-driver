@@ -2198,10 +2198,6 @@ static const struct inode_operations vdfs2_dir_inode_operations = {
 	.mknod		= vdfs2_mknod,
 	.rename		= vdfs2_rename,
 	.setattr	= vdfs2_setattr,
-
-	.setxattr	= vdfs2_setxattr,
-	.getxattr	= vdfs2_getxattr,
-	.removexattr	= vdfs2_removexattr,
 	.listxattr	= vdfs2_listxattr,
 };
 
@@ -2212,10 +2208,6 @@ static const struct inode_operations vdfs2_symlink_inode_operations = {
 	.readlink	= generic_readlink,
 	.get_link	= page_get_link,
 	.setattr	= vdfs2_setattr,
-
-	.setxattr	= vdfs2_setxattr,
-	.getxattr	= vdfs2_getxattr,
-	.removexattr	= vdfs2_removexattr,
 	.listxattr	= vdfs2_listxattr,
 };
 
@@ -2374,9 +2366,6 @@ static const struct inode_operations vdfs2_file_inode_operations = {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)
 		.fallocate	= vdfs2_fallocate,
 #endif
-		.setxattr	= vdfs2_setxattr,
-		.getxattr	= vdfs2_getxattr,
-		.removexattr	= vdfs2_removexattr,
 		.listxattr	= vdfs2_listxattr,
 };
 
@@ -2460,6 +2449,7 @@ static int vdfs2_fill_inode(struct inode *inode,
 		inode->i_fop = &vdfs2_dir_operations;
 	} else if (S_ISCHR(inode->i_mode) || S_ISBLK(inode->i_mode) ||
 			S_ISFIFO(inode->i_mode) || S_ISSOCK(inode->i_mode)) {
+		inode->i_opflags &= ~IOP_XATTR;
 		inode->i_mapping->a_ops = &vdfs2_aops;
 		init_special_inode(inode, inode->i_mode,
 			(dev_t)le64_to_cpu(folder_val->total_items_count));
