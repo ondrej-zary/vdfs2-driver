@@ -286,7 +286,7 @@ static void end_IO(struct bio *bio)
  * @return			Returns 0 on success, errno on failure.
  */
 int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
-		s64 sectors_count, int op, int op_flags, sector_t *isector)
+		s64 sectors_count, int opf, sector_t *isector)
 {
 	struct block_device *bdev = sbi->sb->s_bdev;
 	struct bio *bio;
@@ -303,7 +303,7 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 
 	for (count = 0; count < page_count; count++) {
 		lock_page(pages[count]);
-		if (op == REQ_OP_WRITE)
+		if (opf & REQ_OP_WRITE)
 			set_page_writeback(pages[count]);
 	}
 	INIT_LIST_HEAD(&wait_list_head);
@@ -370,7 +370,7 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 				break;
 			}
 		} while (sec_to_bio);
-		bio_set_op_attrs(bio, op, op_flags);
+		bio->bi_opf = opf;
 		submit_bio(bio);
 
 	} while (sectors_count > 0);
@@ -389,7 +389,7 @@ error_exit:
 
 	for (count = 0; count < page_count; count++) {
 		unlock_page(pages[count]);
-		if (op == REQ_OP_WRITE)
+		if (opf & REQ_OP_WRITE)
 			end_page_writeback(pages[count]);
 	}
 
@@ -461,7 +461,7 @@ again:
 		}
 	}
 	bio->bi_private = &wait;
-	bio_set_op_attrs(bio, REQ_OP_READ, 0);
+	bio->bi_opf = REQ_OP_READ;
 	submit_bio(bio);
 	blk_finish_plug(&plug);
 
@@ -523,7 +523,7 @@ int vdfs2_read_page(struct block_device *bdev,
 		return -EFAULT;
 	}
 	bio->bi_private = &wait;
-	bio_set_op_attrs(bio, REQ_OP_READ, 0);
+	bio->bi_opf = REQ_OP_READ;
 	submit_bio(bio);
 	blk_finish_plug(&plug);
 
@@ -585,7 +585,7 @@ int vdfs2_write_page(struct vdfs2_sb_info *sbi,
 	if (sync_mode)
 		bio->bi_private = &wait;
 
-	bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FLUSH_FUA);
+	bio->bi_opf = REQ_OP_WRITE | REQ_PREFLUSH | REQ_FUA;
 	submit_bio(bio);
 	blk_finish_plug(&plug);
 	if (sync_mode) {
@@ -1288,7 +1288,7 @@ static int vdfs2_meta_write(struct vdfs2_sb_info *sbi,
 
 		if (last_block + blocks_per_page != block) {
 			if (bio) {
-				bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FUA);
+				bio->bi_opf = REQ_OP_WRITE | REQ_FUA;
 				submit_bio(bio);
 			}
 again:
@@ -1304,7 +1304,7 @@ again:
 		set_page_writeback(pvec.pages[index]);
 		size = bio_add_page(bio, pvec.pages[index], PAGE_SIZE, 0);
 		if (size < PAGE_SIZE) {
-			bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FUA);
+			bio->bi_opf = REQ_OP_WRITE | REQ_FUA;
 			submit_bio(bio);
 			bio = NULL;
 			last_block = 0;
@@ -1338,7 +1338,7 @@ again:
 	};
 
 	if (bio) {
-		bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FUA);
+		bio->bi_opf = REQ_OP_WRITE | REQ_FUA;
 		submit_bio(bio);
 	}
 
@@ -1407,7 +1407,7 @@ static int vdfs2_meta_read(struct inode *inode, int type, struct page **pages,
 
 		if (last_block + blocks_per_page != block) {
 			if (bio) {
-				bio_set_op_attrs(bio, REQ_OP_READ, 0);
+				bio->bi_opf = REQ_OP_READ;
 				submit_bio(bio);
 			}
 again:
@@ -1426,7 +1426,7 @@ again:
 
 		size = bio_add_page(bio, page, PAGE_SIZE, 0);
 		if (size < PAGE_SIZE) {
-			bio_set_op_attrs(bio, REQ_OP_READ, 0);
+			bio->bi_opf = REQ_OP_READ;
 			submit_bio(bio);
 			bio = NULL;
 			goto again;
@@ -1436,7 +1436,7 @@ again:
 
 exit:
 	if (bio) {
-		bio_set_op_attrs(bio, REQ_OP_READ, 0);
+		bio->bi_opf = REQ_OP_READ;
 		submit_bio(bio);
 	}
 
@@ -1663,10 +1663,10 @@ struct page *vdfs2_read_or_create_small_area_page(struct inode *inode,
 	return pages[0];
 }
 
-struct bio *vdfs2_mpage_bio_submit(int op, struct bio *bio)
+struct bio *vdfs2_mpage_bio_submit(int opf, struct bio *bio)
 {
 	bio->bi_end_io = end_io_write;
-	bio_set_op_attrs(bio, op, 0);
+	bio->bi_opf = opf;
 	submit_bio(bio);
 	return NULL;
 }
