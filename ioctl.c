@@ -27,7 +27,6 @@
 #include <linux/mount.h>
 #include <linux/version.h>
 #include <linux/file.h>
-#include <../fs/internal.h>
 
 static int mnt_writers_increment(struct vfsmount *mnt)
 {
