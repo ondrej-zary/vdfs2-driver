@@ -1715,8 +1715,7 @@ int vdfs2_mpage_writepage(struct page *page,
 					bh->b_blocknr = extent.first_block +
 						(block_in_file - extent.iblock);
 				}
-				unmap_underlying_metadata(bh->b_bdev,
-					bh->b_blocknr);
+				clean_bdev_bh_alias(bh);
 			}
 		} else {
 			/*
@@ -1744,8 +1743,7 @@ int vdfs2_mpage_writepage(struct page *page,
 		if (vdfs2_get_block(inode, block_in_file, bh, 1))
 			goto confused;
 		if (buffer_new(bh))
-			unmap_underlying_metadata(bh->b_bdev,
-					bh->b_blocknr);
+			clean_bdev_bh_alias(bh);
 
 	}
 
