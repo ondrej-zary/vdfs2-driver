@@ -1268,7 +1268,7 @@ static int vdfs2_meta_write(struct vdfs2_sb_info *sbi,
 
 	INIT_LIST_HEAD(&wait_list_head);
 	blk_start_plug(&plug);
-	pagevec_init(&pvec, 0);
+	pagevec_init(&pvec);
 
 
 	index = 0;

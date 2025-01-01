@@ -281,7 +281,7 @@ int writepage_tiny_small(struct address_space *mapping,
 	struct page *page;
 	int i;
 
-	pagevec_init(&pvec, 0);
+	pagevec_init(&pvec);
 
 	nr_pages = vdfs2_pagevec_lookup_first_page(&pvec, mapping, wbc);
 
@@ -340,7 +340,7 @@ static int writepage_tiny(struct address_space *mapping,
 	int ret = 0;
 	void *file_data;
 	int nr_pages = 0;
-	pagevec_init(&pvec, 0);
+	pagevec_init(&pvec);
 	nr_pages = vdfs2_pagevec_lookup_first_page(&pvec, mapping, wbc);
 
 	/* someone wrote all pages for us */
@@ -465,7 +465,7 @@ static int writepage_small(struct address_space *mapping,
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
 	int nr_pages;
 	struct pagevec pvec;
-	pagevec_init(&pvec, 0);
+	pagevec_init(&pvec);
 	nr_pages = vdfs2_pagevec_lookup_first_page(&pvec, mapping, wbc);
 
 	/* someone wrote all pages for us */
