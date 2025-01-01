@@ -159,7 +159,7 @@ long vdfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		else
 			VDFS2_I(inode)->flags &= ~(1 << VDFS2_IMMUTABLE);
 		vdfs2_set_vfs_inode_flags(inode);
-		inode->i_ctime = vdfs2_current_time(inode);
+		inode->i_ctime = current_time(inode);
 		mutex_lock(&VDFS2_I(inode)->truncate_mutex);
 		vdfs2_write_inode_to_bnode(inode);
 		mutex_unlock(&VDFS2_I(inode)->truncate_mutex);
@@ -402,14 +402,14 @@ long vdfs2_dir_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			mutex_lock(&inode_info->truncate_mutex);
 			inode->i_size++;
 			sbi->files_count += input_data.pmc.inodes_cnt;
-			inode->i_mtime = vdfs2_current_time(inode);
+			inode->i_mtime = current_time(inode);
 			ret = vdfs2_write_inode_to_bnode(inode);
 			mutex_unlock(&inode_info->truncate_mutex);
 
 			mutex_lock(&VDFS2_I(image_inode)->truncate_mutex);
 			VDFS2_I(image_inode)->flags |= (1 << VDFS2_IMMUTABLE);
 			vdfs2_set_vfs_inode_flags(image_inode);
-			image_inode->i_ctime = vdfs2_current_time(image_inode);
+			image_inode->i_ctime = current_time(image_inode);
 			vdfs2_write_inode_to_bnode(image_inode);
 			mutex_unlock(&VDFS2_I(image_inode)->truncate_mutex);
 		}

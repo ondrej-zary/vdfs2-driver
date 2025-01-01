@@ -892,17 +892,6 @@ static inline void vdfs2_lfork_to_rfork(struct vdfs2_fork *lfork,
 }
 
 /**
- * @brief		Get current time for inode.
- * @param [in]	inode	The inode for which current time will be returned
- * @return		Time value for current inode
- */
-static inline struct timespec vdfs2_current_time(struct inode *inode)
-{
-	return (inode->i_sb->s_time_gran < NSEC_PER_SEC) ?
-		current_fs_time(inode->i_sb) : CURRENT_TIME_SEC;
-}
-
-/**
  * @brief		returns log blocks per page.
  * @param [in]	sb	Superblock structure.
  * @return		log blocks per page

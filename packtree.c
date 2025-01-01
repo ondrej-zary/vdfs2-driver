@@ -84,7 +84,7 @@ static int unlock_source_image(struct vdfs2_sb_info *sbi,
 	mutex_lock(&VDFS2_I(image_inode)->truncate_mutex);
 	VDFS2_I(image_inode)->flags &= ~(1 << VDFS2_IMMUTABLE);
 	vdfs2_set_vfs_inode_flags(image_inode);
-	image_inode->i_ctime = vdfs2_current_time(image_inode);
+	image_inode->i_ctime = current_time(image_inode);
 	rc = vdfs2_write_inode_to_bnode(image_inode);
 	mutex_unlock(&VDFS2_I(image_inode)->truncate_mutex);
 	iput(image_inode);
@@ -139,7 +139,7 @@ static int update_parent_dir(struct vdfs2_sb_info *sbi, struct inode *inode,
 	else
 		VDFS2_DEBUG_INO("Files count mismatch");
 
-	parent_dir_inode->i_mtime = vdfs2_current_time(parent_dir_inode);
+	parent_dir_inode->i_mtime = current_time(parent_dir_inode);
 
 	rc = vdfs2_fill_cattree_value(parent_dir_inode, record->val);
 	vdfs2_release_dirty_record((struct vdfs2_btree_gen_record *) record);
@@ -462,7 +462,7 @@ int vdfs2_install_packtree(struct file *parent_dir, struct file *image_file,
 	struct vdfs2_sb_info *sbi = VDFS2_SB(parent_inode->i_sb);
 	struct vdfs2_cattree_record *record = NULL;
 	struct vdfs2_pack_insert_point_value *ipv;
-	struct timespec curr_time = vdfs2_current_time(parent_inode);
+	struct timespec curr_time = current_time(parent_inode);
 	struct inode *install_point_inode = NULL;
 	ino_t ino = 0;
 

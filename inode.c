@@ -598,7 +598,7 @@ static int vdfs2_unlink(struct inode *dir, struct dentry *dentry)
 			ret = -EINVAL;
 			goto exit_inc_nlink;
 		}
-		inode->i_ctime = vdfs2_current_time(dir);
+		inode->i_ctime = current_time(dir);
 	} else {
 		snprintf(ino_name, UUL_MAX_LEN + 1, "%lu", inode->i_ino);
 		len = strlen(ino_name);
@@ -642,8 +642,8 @@ static int vdfs2_unlink(struct inode *dir, struct dentry *dentry)
 	else
 		VDFS2_DEBUG_INO("Files count mismatch");
 
-	dir->i_ctime = vdfs2_current_time(dir);
-	dir->i_mtime = vdfs2_current_time(dir);
+	dir->i_ctime = current_time(dir);
+	dir->i_mtime = current_time(dir);
 	ret = vdfs2_write_inode_to_bnode(dir);
 	mutex_unlock(&VDFS2_I(dir)->truncate_mutex);
 
@@ -1658,7 +1658,7 @@ static int vdfs2_update_inode(struct inode *inode, loff_t newsize)
 
 
 	inode->i_mtime = inode->i_ctime =
-			vdfs2_current_time(inode);
+			current_time(inode);
 
 	return error;
 }
@@ -1867,7 +1867,7 @@ static int vdfs2_rename(struct inode *old_dir, struct dentry *old_dentry,
 	if (ret)
 		goto exit;
 
-	mv_inode->i_ctime = vdfs2_current_time(mv_inode);
+	mv_inode->i_ctime = current_time(mv_inode);
 exit:
 	vdfs2_stop_transaction(sbi);
 	return ret;
@@ -2039,7 +2039,7 @@ static int vdfs2_link(struct dentry *old_dentry, struct inode *dir,
 	VDFS2_DEBUG_MUTEX("cattree mutex w lock un");
 	mutex_w_unlock(sbi->catalog_tree->rw_tree_lock);
 
-	inode->i_ctime = vdfs2_current_time(inode);
+	inode->i_ctime = current_time(inode);
 
 
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)
@@ -2059,8 +2059,8 @@ static int vdfs2_link(struct dentry *old_dentry, struct inode *dir,
 		goto exit;
 
 	mutex_lock(&VDFS2_I(dir)->truncate_mutex);
-	dir->i_ctime = vdfs2_current_time(dir);
-	dir->i_mtime = vdfs2_current_time(dir);
+	dir->i_ctime = current_time(dir);
+	dir->i_mtime = current_time(dir);
 	dir->i_size++;
 	ret = vdfs2_write_inode_to_bnode(dir);
 	mutex_unlock(&VDFS2_I(dir)->truncate_mutex);
@@ -2641,7 +2641,7 @@ static struct inode *vdfs2_new_inode(struct inode *dir, umode_t mode)
 	inode->i_generation = le32_to_cpu(VDFS2_RAW_EXSB(sbi)->generation);
 	inode->i_blocks = 0;
 	inode->i_mtime = inode->i_atime = inode->i_ctime =
-			vdfs2_current_time(inode);
+			current_time(inode);
 	atomic_set(&(VDFS2_I(inode)->open_count), 0);
 
 	/* todo actual inheritance mask and mode-dependent masking */
@@ -2779,8 +2779,8 @@ static int vdfs2_create(struct inode *dir, struct dentry *dentry, int mode,
 	mutex_lock(&VDFS2_I(dir)->truncate_mutex);
 	dir->i_size++;
 	sbi->files_count++;
-	dir->i_ctime = vdfs2_current_time(dir);
-	dir->i_mtime = vdfs2_current_time(dir);
+	dir->i_ctime = current_time(dir);
+	dir->i_mtime = current_time(dir);
 	ret = vdfs2_write_inode_to_bnode(dir);
 	mutex_unlock(&VDFS2_I(dir)->truncate_mutex);
 #ifdef CONFIG_VDFS2_QUOTA
