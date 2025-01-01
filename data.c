@@ -1550,7 +1550,7 @@ int vdfs2_read_or_create_pages(struct vdfs2_sb_info *sbi, struct inode *inode,
 again:
 		page = find_get_page(mapping, index + count);
 		if (!page) {
-			page = page_cache_alloc_cold(mapping);
+			page = page_cache_alloc(mapping);
 			if (!page) {
 				ret = -ENOMEM;
 				goto exit_alloc_page;

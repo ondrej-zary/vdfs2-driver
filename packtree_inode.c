@@ -204,7 +204,7 @@ static struct page **get_opages(struct inode *inode, __u32 index)
 again:
 		page = find_lock_page(mapping, index + count);
 		if (!page) {
-			page = page_cache_alloc_cold(mapping);
+			page = page_cache_alloc(mapping);
 			if (!page) {
 				count--;
 				for (; count >= 0; count--) {
@@ -872,7 +872,7 @@ again:
 again2:
 		page = find_get_page(mapping, index);
 		if (!page) {
-			page = page_cache_alloc_cold(mapping);
+			page = page_cache_alloc(mapping);
 			if (!page) {
 				i--;
 				for (; i > -1; i--)
