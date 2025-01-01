@@ -462,7 +462,7 @@ int vdfs2_install_packtree(struct file *parent_dir, struct file *image_file,
 	struct vdfs2_sb_info *sbi = VDFS2_SB(parent_inode->i_sb);
 	struct vdfs2_cattree_record *record = NULL;
 	struct vdfs2_pack_insert_point_value *ipv;
-	struct timespec curr_time = current_time(parent_inode);
+	struct timespec64 curr_time = current_time(parent_inode);
 	struct inode *install_point_inode = NULL;
 	ino_t ino = 0;
 
