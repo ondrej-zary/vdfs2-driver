@@ -2205,7 +2205,6 @@ static const struct inode_operations vdfs2_dir_inode_operations = {
  * The eMMCFS symlink inode operations.
  */
 static const struct inode_operations vdfs2_symlink_inode_operations = {
-	.readlink	= generic_readlink,
 	.get_link	= page_get_link,
 	.setattr	= vdfs2_setattr,
 	.listxattr	= vdfs2_listxattr,

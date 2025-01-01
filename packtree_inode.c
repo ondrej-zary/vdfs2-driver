@@ -1442,6 +1442,5 @@ static const struct inode_operations vdfs2_packtree_file_inode_operations = {
  * The vdfs2 packtree symlink inode operations.
  */
 static const struct inode_operations vdfs2_packtree_symlink_inode_operations = {
-	.readlink	= generic_readlink,
 	.get_link	= vdfs2_packtree_get_link
 };
