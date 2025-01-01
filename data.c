@@ -1062,8 +1062,9 @@ static int get_pages_from_mapping(struct vdfs2_sb_info *sbi,
 					(1 << (sbi->log_blocks_in_page
 					+ sbi->log_blocks_in_leb))) :
 					PAGEVEC_SIZE;
-			nr_pages = pagevec_lookup_tag(pvec, *current_mapping,
-				index, PAGECACHE_TAG_DIRTY, size);
+			nr_pages = pagevec_lookup_range_nr_tag(pvec,
+				*current_mapping, index, (pgoff_t)-1,
+				PAGECACHE_TAG_DIRTY, size);
 
 			ino = current_mapping[0]->host->i_ino;
 

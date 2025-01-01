@@ -262,8 +262,8 @@ static unsigned vdfs2_pagevec_lookup_first_page(struct pagevec *pvec,
 
 	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
 		tag_pages_for_writeback(mapping, page_index, end);
-	nr_pages = pagevec_lookup_tag(pvec, mapping, &start_index, tag,
-		nr_pages);
+	nr_pages = pagevec_lookup_range_nr_tag(pvec, mapping, &start_index,
+		(pgoff_t)-1, tag, nr_pages);
 	return nr_pages;
 }
 
