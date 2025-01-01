@@ -23,6 +23,7 @@
 #include <linux/buffer_head.h>
 #include <linux/file.h>
 #include <linux/vmalloc.h>
+#include <linux/cred.h>
 #include "vdfs2.h"
 #include "cattree.h"
 #include "packtree.h"
