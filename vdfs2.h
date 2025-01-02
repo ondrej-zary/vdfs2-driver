@@ -656,23 +656,6 @@ struct vdfs2_indirect_key {
 	__u8   inode_type;
 };
 
-/** @brief	Structure for log buffer data.
- */
-struct vdfs2_log_buffer_data {
-	/** Functioncall name */
-	char name[MAX_FUNCTION_LENGTH];
-	/** Process id called this function */
-	int pid;
-	/** TODO */
-	unsigned int nest;
-	/** TODO */
-	unsigned int mutex;
-	/** TODO */
-	int ret_code;
-	/** Time */
-	struct timeval time;
-};
-
 /** @brief	Task logging.
  */
 struct vdfs2_task_log {
