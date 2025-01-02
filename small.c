@@ -232,7 +232,7 @@ exit:
 static unsigned vdfs2_pagevec_lookup_first_page(struct pagevec *pvec,
 		struct address_space *mapping, struct writeback_control *wbc)
 {
-	pgoff_t uninitialized_var(writeback_index);
+	pgoff_t writeback_index;
 	pgoff_t page_index;
 	pgoff_t end;
 	pgoff_t start_index = 0;
