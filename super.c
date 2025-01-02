@@ -316,7 +316,7 @@ static void vdfs2_delayed_commit(struct work_struct *work)
 	if (down_read_trylock(&sb->s_umount)) {
 		sync_filesystem(sb);
 		up_read(&sb->s_umount);
-	} else if (sb->s_flags & MS_ACTIVE) {
+	} else if (sb->s_flags & SB_ACTIVE) {
 		mod_delayed_work(system_wq, &sbi->delayed_commit, HZ);
 	}
 }

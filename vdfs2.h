@@ -132,8 +132,8 @@ static inline __u32 vdfs2_get_packtree_max_record_size(void)
 #endif
 
 /* macros */
-#define VDFS2_IS_READONLY(sb) (sb->s_flags & MS_RDONLY)
-#define VDFS2_SET_READONLY(sb) (sb->s_flags |= MS_RDONLY)
+#define VDFS2_IS_READONLY(sb) (sb->s_flags & SB_RDONLY)
+#define VDFS2_SET_READONLY(sb) (sb->s_flags |= SB_RDONLY)
 
 /*#define CONFIG_VDFS2_CHECK_FRAGMENTATION*/
 /*#define	CONFIG_VDFS2_POPO_HELPER*/

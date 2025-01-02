@@ -55,7 +55,7 @@ static int mnt_writers_increment(struct vfsmount *mnt)
 	 */
 	smp_rmb();
 	if ((mnt->mnt_flags & MNT_READONLY) &&
-		(mnt->mnt_sb->s_flags & MS_RDONLY)) {
+		(mnt->mnt_sb->s_flags & SB_RDONLY)) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 5)
 #ifdef CONFIG_SMP
 		this_cpu_dec(mnt->mnt_pcp->mnt_writers);
