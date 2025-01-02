@@ -472,14 +472,13 @@ static int read_and_unpack_chunk(struct installed_packtree_info *ptree_info,
 		goto exit_free_packed_page;
 	}
 
-	mapped_packed_pages = vm_map_ram(packed_pages, packed_page_count, -1,
-			PAGE_KERNEL);
+	mapped_packed_pages = vm_map_ram(packed_pages, packed_page_count, -1);
 	if (!mapped_packed_pages) {
 		ret = -ENOMEM;
 		goto exit_no_vmem;
 	}
 
-	mapped_opages = vm_map_ram(opages, TOTAL_PAGES, -1, PAGE_KERNEL);
+	mapped_opages = vm_map_ram(opages, TOTAL_PAGES, -1);
 	if (!mapped_opages) {
 		ret = -ENOMEM;
 		goto exit;
