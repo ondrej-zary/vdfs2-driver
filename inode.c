@@ -1233,41 +1233,19 @@ static int vdfs2_readpage_special(struct file *file, struct page *page)
 
 /**
  * @brief			Read multiple pages function.
- * @param [in]	file		Pointer to file structure
- * @param [in]	mapping		Address of pages mapping
- * @param [out]	pages		Pointer to list with pages
- * param [in]	nr_pages	Number of pages
- * @return			Returns error codes
+ * @param [in, out]	ractl	Readahead control
  */
-static int vdfs2_readpages(struct file *file, struct address_space *mapping,
-		struct list_head *pages, unsigned nr_pages)
+static void vdfs2_readahead(struct readahead_control *ractl)
 {
-	struct inode *inode = mapping->host;
-	int err = 0;
+	struct inode *inode = ractl->mapping->host;
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE) ||
 		is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
-		err = vdfs2_readpages_tinysmall(file, mapping, pages,
-			nr_pages);
-		goto exit;
-	}
-
-	err = mpage_readpages(mapping, pages, nr_pages, vdfs2_get_block);
-exit:
-	/* if there is error, print DEBUG iNFO */
-#if defined(CONFIG_VDFS2_DEBUG)
-	if (err) {
-		struct page *page = list_entry(pages->prev, struct page, lru);
-		VDFS2_ERR("err = %d, ino#%lu name=%s, page index: %d", err,
-			inode->i_ino, VDFS2_I(inode)->name, nr_pages ?
-			(int)page->index : -1);
-	}
-#endif
-	return err;
+		vdfs2_readahead_tinysmall(ractl);
+	} else
+		mpage_readahead(ractl, vdfs2_get_block);
 }
 
-static int vdfs2_readpages_special(struct file *file,
-		struct address_space *mapping, struct list_head *pages,
-		unsigned nr_pages)
+static void vdfs2_readahead_special(struct readahead_control *ractl)
 {
 	BUG();
 }
@@ -2152,7 +2130,7 @@ exit:
  */
 const struct address_space_operations vdfs2_aops = {
 	.readpage	= vdfs2_readpage,
-	.readpages	= vdfs2_readpages,
+	.readahead	= vdfs2_readahead,
 	.writepage	= vdfs2_writepage,
 	.writepages	= vdfs2_writepages,
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)
@@ -2169,7 +2147,7 @@ const struct address_space_operations vdfs2_aops = {
 
 static const struct address_space_operations vdfs2_aops_special = {
 	.readpage	= vdfs2_readpage_special,
-	.readpages	= vdfs2_readpages_special,
+	.readahead	= vdfs2_readahead_special,
 	.writepage	= vdfs2_writepage,
 	.writepages	= vdfs2_writepages_special,
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)

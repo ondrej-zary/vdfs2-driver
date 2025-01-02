@@ -1386,8 +1386,7 @@ int write_tiny_small_page(struct page *page, struct writeback_control *wbc);
 int read_tiny_small_page(struct page *page);
 int writepage_tiny_small(struct address_space *mapping,
 		struct writeback_control *wbc);
-int vdfs2_readpages_tinysmall(struct file *file, struct address_space *mapping,
-		struct list_head *pages, unsigned nr_pages);
+void vdfs2_readahead_tinysmall(struct readahead_control *ractl);
 #ifdef CONFIG_VDFS2_QUOTA
 /* quota.c */
 int build_quota_manager(struct vdfs2_sb_info *sbi);

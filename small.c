@@ -21,30 +21,22 @@ static ssize_t process_small_file(struct kiocb *iocb, struct iov_iter *from,
 
 /**
  * @brief			Read multiple pages function.
- * @param [in]	file		Pointer to file structure
- * @param [in]	mapping		Address of pages mapping
- * @param [out]	pages		Pointer to list with pages
- * param [in]	nr_pages	Number of pages
- * @return			Returns error codes
+ * @param [in, out]	ractl	Readahead control
  */
-int vdfs2_readpages_tinysmall(struct file *file, struct address_space *mapping,
-		struct list_head *pages, unsigned nr_pages)
+void vdfs2_readahead_tinysmall(struct readahead_control *ractl)
 {
-	struct inode *inode = mapping->host;
+	struct inode *inode = ractl->mapping->host;
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
 	int ret = 0;
-	int i = 0;
+	struct page *page;
 
 	mutex_lock(&inode_info->truncate_mutex);
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE) ||
 		is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
 		/* go through the list of pages */
-		for (i = 0; i < nr_pages; i++) {
-			struct page *page = list_entry(pages->prev, struct page,
-					lru);
+		while ((page = readahead_page(ractl))) {
 			prefetchw(&page->flags);
-			list_del(&page->lru);
-			ret = add_to_page_cache_lru(page, mapping,
+			ret = add_to_page_cache_lru(page, ractl->mapping,
 					page->index, GFP_KERNEL);
 			if (!ret) {
 				if (page->index == 0)
@@ -63,10 +55,10 @@ int vdfs2_readpages_tinysmall(struct file *file, struct address_space *mapping,
 				break;
 		}
 		mutex_unlock(&inode_info->truncate_mutex);
-		return ret;
+		return;
 	}
 	mutex_unlock(&inode_info->truncate_mutex);
-	return mpage_readpages(mapping, pages, nr_pages, vdfs2_get_block);
+	mpage_readahead(ractl, vdfs2_get_block);
 }
 
 /** Brief: get or create a first page for tiny or small file and return it
