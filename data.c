@@ -42,20 +42,19 @@
  */
 static void end_io_write(struct bio *bio)
 {
-	struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
+	struct bio_vec *bvec;
+	struct bvec_iter_all iter_all;
 
-	do {
+	bio_for_each_segment_all(bvec, bio, iter_all) {
 		struct page *page = bvec->bv_page;
 
-		if (--bvec >= bio->bi_io_vec)
-			prefetchw(&bvec->bv_page->flags);
 		if (bio->bi_status) {
 			SetPageError(page);
 			if (page->mapping)
 				set_bit(AS_EIO, &page->mapping->flags);
 		}
 		end_page_writeback(page);
-	} while (bvec >= bio->bi_io_vec);
+	}
 
 	if (bio->bi_private)
 		complete(bio->bi_private);
@@ -69,14 +68,12 @@ static void end_io_write(struct bio *bio)
  */
 static void read_end_io(struct bio *bio)
 {
-	struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
+	struct bio_vec *bvec;
 	struct completion *wait = bio->bi_private;
+	struct bvec_iter_all iter_all;
 
-	do {
+	bio_for_each_segment_all(bvec, bio, iter_all) {
 		struct page *page = bvec->bv_page;
-
-		if (--bvec >= bio->bi_io_vec)
-			prefetchw(&bvec->bv_page->flags);
 
 		if (!bio->bi_status) {
 			SetPageUptodate(page);
@@ -84,7 +81,7 @@ static void read_end_io(struct bio *bio)
 			ClearPageUptodate(page);
 			SetPageError(page);
 		}
-	} while (bvec >= bio->bi_io_vec);
+	}
 	complete(wait);
 	bio_put(bio);
 }
@@ -251,13 +248,12 @@ static int get_block_meta_wrapper(struct inode *inode, pgoff_t page_index,
 
 static void end_IO(struct bio *bio)
 {
-	struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
+	struct bio_vec *bvec;
+	struct bvec_iter_all iter_all;
 
-	do {
+	bio_for_each_segment_all(bvec, bio, iter_all) {
 		struct page *page = bvec->bv_page;
 
-		if (--bvec >= bio->bi_io_vec)
-			prefetchw(&bvec->bv_page->flags);
 		if (bio->bi_status) {
 			SetPageError(page);
 			if (page->mapping)
@@ -265,7 +261,7 @@ static void end_IO(struct bio *bio)
 			VDFS2_BUG();
 		}
 
-	} while (bvec >= bio->bi_io_vec);
+	}
 
 	if (bio->bi_private) {
 		struct vdfs2_wait_list *wait = bio->bi_private;
@@ -1102,13 +1098,12 @@ static int get_pages_from_mapping(struct vdfs2_sb_info *sbi,
 
 static void meta_end_IO(struct bio *bio)
 {
-	struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
+	struct bio_vec *bvec;
+	struct bvec_iter_all iter_all;
 
-	do {
+	bio_for_each_segment_all(bvec, bio, iter_all) {
 		struct page *page = bvec->bv_page;
 
-		if (--bvec >= bio->bi_io_vec)
-			prefetchw(&bvec->bv_page->flags);
 		if (bio->bi_status) {
 			SetPageError(page);
 			if (page->mapping)
@@ -1127,7 +1122,7 @@ static void meta_end_IO(struct bio *bio)
 				unlock_page(page);
 		}
 
-	} while (bvec >= bio->bi_io_vec);
+	}
 
 	if (bio->bi_private) {
 		struct vdfs2_wait_list *wait = bio->bi_private;
