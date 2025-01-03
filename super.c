@@ -471,7 +471,7 @@ static int vdfs2_statfs(struct dentry *dentry, struct kstatfs *buf)
 #endif
 
 	{
-		const char *device_name = sb->s_bdev->bd_part->__dev.kobj.name;
+		const char *device_name = sb->s_bdev->bd_device.kobj.name;
 		u64 meta_size = calc_special_files_size(sbi) <<
 			(sbi->block_size_shift - 10);
 		u64 data_size = (buf->f_blocks - percpu_counter_sum(
@@ -1693,8 +1693,6 @@ static int vdfs2_fill_super(struct super_block *sb, void *data, int silent)
 	if (!sb)
 		return -ENXIO;
 	if (!sb->s_bdev)
-		return -ENXIO;
-	if (!sb->s_bdev->bd_part)
 		return -ENXIO;
 
 	VDFS2_MOUNT_INFO("mounting %s", bdevname(sb->s_bdev, bdev_name));
