@@ -2144,7 +2144,7 @@ const struct address_space_operations vdfs2_aops = {
 	.bmap		= vdfs2_bmap,
 	.migratepage	= buffer_migrate_page,
 	.releasepage = vdfs2_releasepage,
-	.set_page_dirty = __set_page_dirty_buffers,
+	.dirty_folio	= block_dirty_folio,
 
 };
 
@@ -2159,7 +2159,7 @@ static const struct address_space_operations vdfs2_aops_special = {
 	.write_begin	= vdfs2_write_begin,
 	.write_end	= vdfs2_write_end,
 	.bmap		= vdfs2_bmap,
-	.set_page_dirty = __set_page_dirty_buffers,
+	.dirty_folio	= block_dirty_folio,
 };
 
 /**
