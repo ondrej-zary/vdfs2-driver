@@ -122,7 +122,7 @@ long vdfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #elif LINUX_VERSION_CODE == KERNEL_VERSION(3, 0, 20) || \
 		LINUX_VERSION_CODE == KERNEL_VERSION(3, 0, 33) ||\
 		LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-		if (!inode_owner_or_capable(inode)) {
+		if (!inode_owner_or_capable(&init_user_ns, inode)) {
 #else
 	BUILD_BUG();
 #endif

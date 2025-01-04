@@ -52,8 +52,8 @@
  * @return		Returns 0 on success, errno on failure
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-static int vdfs2_create(struct inode *dir, struct dentry *dentry, umode_t mode,
-		bool excl);
+static int vdfs2_create(struct user_namespace *mnt_userns, struct inode *dir,
+		struct dentry *dentry, umode_t mode, bool excl);
 #else
 static int vdfs2_create(struct inode *dir, struct dentry *dentry, int mode,
 		struct nameidata *nd);
@@ -1560,12 +1560,13 @@ static int vdfs2_file_release(struct inode *inode, struct file *file)
  * @return		Returns error codes
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-static int vdfs2_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
+static int vdfs2_mkdir(struct user_namespace *mnt_userns, struct inode *dir,
+			struct dentry *dentry, umode_t mode)
 #else
 static int vdfs2_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 #endif
 {
-	return vdfs2_create(dir, dentry, S_IFDIR | mode, NULL);
+	return vdfs2_create(mnt_userns, dir, dentry, S_IFDIR | mode, NULL);
 }
 
 /**
@@ -1647,7 +1648,8 @@ static int vdfs2_update_inode(struct inode *inode, loff_t newsize)
  * @param [in]	iattr	Attributes to be set
  * @return		Returns error codes
  */
-static int vdfs2_setattr(struct dentry *dentry, struct iattr *iattr)
+static int vdfs2_setattr(struct user_namespace *mnt_userns,
+			struct dentry *dentry, struct iattr *iattr)
 {
 	struct inode *inode = dentry->d_inode;
 	int error = 0;
@@ -1656,7 +1658,7 @@ static int vdfs2_setattr(struct dentry *dentry, struct iattr *iattr)
 #endif
 
 	vdfs2_start_transaction(VDFS2_SB(inode->i_sb));
-	error = setattr_prepare(dentry, iattr);
+	error = setattr_prepare(&init_user_ns, dentry, iattr);
 	if (error)
 		goto exit;
 #ifdef CONFIG_VDFS2_QUOTA
@@ -1685,7 +1687,7 @@ static int vdfs2_setattr(struct dentry *dentry, struct iattr *iattr)
 	} else
 		mutex_lock(&VDFS2_I(inode)->truncate_mutex);
 
-	setattr_copy(inode, iattr);
+	setattr_copy(&init_user_ns, inode, iattr);
 
 	error = vdfs2_write_inode_to_bnode(inode);
 
@@ -1716,7 +1718,8 @@ static sector_t vdfs2_bmap(struct address_space *mapping, sector_t block)
  * @param [in]	new_dentry	Pointer to new dir entry struct
  * @return			Returns error codes
  */
-static int vdfs2_rename(struct inode *old_dir, struct dentry *old_dentry,
+static int vdfs2_rename(struct user_namespace *mnt_userns,
+		struct inode *old_dir, struct dentry *old_dentry,
 		struct inode *new_dir, struct dentry *new_dentry,
 		unsigned int flags)
 {
@@ -2065,8 +2068,8 @@ err_exit:
  * @return			Returns 0 on success, errno on failure
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-static int vdfs2_mknod(struct inode *dir, struct dentry *dentry,
-			umode_t mode, dev_t rdev)
+static int vdfs2_mknod(struct user_namespace *mnt_userns, struct inode *dir,
+			struct dentry *dentry, umode_t mode, dev_t rdev)
 #else
 static int vdfs2_mknod(struct inode *dir, struct dentry *dentry,
 			int mode, dev_t rdev)
@@ -2077,7 +2080,7 @@ static int vdfs2_mknod(struct inode *dir, struct dentry *dentry,
 
 	vdfs2_start_transaction(VDFS2_SB(dir->i_sb));
 
-	ret = vdfs2_create(dir, dentry, mode, NULL);
+	ret = vdfs2_create(mnt_userns, dir, dentry, mode, NULL);
 	if (ret)
 		goto exit;
 
@@ -2098,8 +2101,8 @@ exit:
  * @param [in]		symname Symbolic link name
  * @return			Returns 0 on success, errno on failure
  */
-static int vdfs2_symlink(struct inode *dir, struct dentry *dentry,
-	const char *symname)
+static int vdfs2_symlink(struct user_namespace *mnt_userns, struct inode *dir,
+			struct dentry *dentry, const char *symname)
 {
 	int ret;
 	struct inode *created_ino;
@@ -2111,7 +2114,7 @@ static int vdfs2_symlink(struct inode *dir, struct dentry *dentry,
 
 	vdfs2_start_transaction(VDFS2_SB(dir->i_sb));
 
-	ret = vdfs2_create(dir, dentry, S_IFLNK | S_IRWXUGO, NULL);
+	ret = vdfs2_create(mnt_userns, dir, dentry, S_IFLNK | S_IRWXUGO, NULL);
 
 	if (ret)
 		goto exit;
@@ -2608,7 +2611,7 @@ static struct inode *vdfs2_new_inode(struct inode *dir, umode_t mode)
 	if (test_option(sbi, FMASK) && S_ISREG(mode))
 		mode &= ~sbi->fmask;
 
-	inode_init_owner(inode, dir, mode);
+	inode_init_owner(&init_user_ns, inode, dir, mode);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
 	set_nlink(inode, 1);
@@ -2678,8 +2681,8 @@ err_exit_noiput:
  * @return			Returns 0 on success, errno on failure
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-static int vdfs2_create(struct inode *dir, struct dentry *dentry, umode_t mode,
-		bool excl)
+static int vdfs2_create(struct user_namespace *mnt_userns, struct inode *dir,
+		struct dentry *dentry, umode_t mode, bool excl)
 #else
 static int vdfs2_create(struct inode *dir, struct dentry *dentry, int mode,
 		struct nameidata *nd)
