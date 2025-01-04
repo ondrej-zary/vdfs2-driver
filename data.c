@@ -308,8 +308,7 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 	do {
 		unsigned int size;
 
-		nr_vectr = (page_count < BIO_MAX_PAGES) ? page_count :
-				BIO_MAX_PAGES;
+		nr_vectr = bio_max_segs(page_count);
 
 		ret = get_table_sector(sbi, c_isector + l_sector,
 				&start_sector, &length);
@@ -418,8 +417,7 @@ int vdfs2_read_pages(struct block_device *bdev,
 	struct completion wait;
 	unsigned int count = 0;
 	int continue_load = 0;
-	int nr_vectr = (page_count < BIO_MAX_PAGES) ?
-				page_count : BIO_MAX_PAGES;
+	int nr_vectr = bio_max_segs(page_count);
 
 	struct blk_plug plug;
 
@@ -1141,7 +1139,7 @@ static struct bio *allocate_new_request(struct vdfs2_sb_info *sbi, sector_t
 			SECTOR_SIZE_SHIFT);
 	struct vdfs2_wait_list *new_request;
 	struct block_device *bdev = sbi->sb->s_bdev;
-	int bio_size = (size > BIO_MAX_PAGES) ? BIO_MAX_PAGES : size;
+	int bio_size = bio_max_segs(size);
 
 
 	bio = vdfs2_allocate_new_bio(bdev, start_sector, bio_size);
@@ -1776,7 +1774,7 @@ alloc_new:
 		BUG();
 	if (IS_ERR_OR_NULL(bio)) {
 		bio = vdfs2_allocate_new_bio(bdev, boundary_block << (blkbits - 9),
-				BIO_MAX_PAGES);
+				BIO_MAX_VECS);
 		if (IS_ERR_OR_NULL(bio))
 			goto confused;
 	}
