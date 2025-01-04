@@ -1175,25 +1175,25 @@ static bool vdfs2_release_folio(struct folio *folio, gfp_t gfp_mask)
 }
 
 /**
- * @brief		Read page function.
+ * @brief		Read folio function.
  * @param [in]	file	Pointer to file structure
- * @param [out]	page	Pointer to page structure
+ * @param [out]	folio	Pointer to folio structure
  * @return		Returns error codes
  */
-static int vdfs2_readpage(struct file *file, struct page *page)
+static int vdfs2_read_folio(struct file *file, struct folio *folio)
 {
-	struct inode *inode = page->mapping->host;
+	struct inode *inode = folio->mapping->host;
 	struct vdfs2_inode_info *inode_info = VDFS2_I(inode);
 	int ret;
 	/* check TINY and SMALL flag twice, first time without lock,
 	and second time with lock, this is made for perfomance reason */
 	if (is_vdfs2_inode_flag_set(inode, TINY_FILE) ||
 		is_vdfs2_inode_flag_set(inode, SMALL_FILE))
-		if (page->index == 0) {
+		if (folio->index == 0) {
 			mutex_lock(&inode_info->truncate_mutex);
 			if (is_vdfs2_inode_flag_set(inode, TINY_FILE) ||
 			is_vdfs2_inode_flag_set(inode, SMALL_FILE)) {
-				ret = read_tiny_small_page(page);
+				ret = read_tiny_small_page(&folio->page);
 				mutex_unlock(&inode_info->truncate_mutex);
 			} else {
 				mutex_unlock(&inode_info->truncate_mutex);
@@ -1203,30 +1203,30 @@ static int vdfs2_readpage(struct file *file, struct page *page)
 #if defined(CONFIG_VDFS2_DEBUG)
 			if (ret)
 				VDFS2_ERR("err = %d, ino#%lu name=%s,"
-					"page index: %lu", ret, inode->i_ino,
-					inode_info->name, page->index);
+					"folio index: %lu", ret, inode->i_ino,
+					inode_info->name, folio->index);
 #endif
 			return ret;
 		}
 exit:
-	ret = mpage_readpage(page, vdfs2_get_block);
+	ret = mpage_read_folio(folio, vdfs2_get_block);
 	/* if there is error, print DEBUG iNFO */
 #if defined(CONFIG_VDFS2_DEBUG)
 	if (ret)
-		VDFS2_ERR("err = %d, ino#%lu name=%s, page index: %lu",
-			ret, inode->i_ino, inode_info->name, page->index);
+		VDFS2_ERR("err = %d, ino#%lu name=%s, folio index: %lu",
+			ret, inode->i_ino, inode_info->name, folio->index);
 #endif
 	return ret;
 }
 
 
 /**
- * @brief		Read page function.
+ * @brief		Read folio function.
  * @param [in]	file	Pointer to file structure
- * @param [out]	page	Pointer to page structure
+ * @param [out]	folio	Pointer to folio structure
  * @return		Returns error codes
  */
-static int vdfs2_readpage_special(struct file *file, struct page *page)
+static int vdfs2_read_folio_special(struct file *file, struct folio *folio)
 {
 	BUG();
 }
@@ -2132,7 +2132,7 @@ exit:
  * The eMMCFS address space operations.
  */
 const struct address_space_operations vdfs2_aops = {
-	.readpage	= vdfs2_readpage,
+	.read_folio	= vdfs2_read_folio,
 	.readahead	= vdfs2_readahead,
 	.writepage	= vdfs2_writepage,
 	.writepages	= vdfs2_writepages,
@@ -2149,7 +2149,7 @@ const struct address_space_operations vdfs2_aops = {
 };
 
 static const struct address_space_operations vdfs2_aops_special = {
-	.readpage	= vdfs2_readpage_special,
+	.read_folio	= vdfs2_read_folio_special,
 	.readahead	= vdfs2_readahead_special,
 	.writepage	= vdfs2_writepage,
 	.writepages	= vdfs2_writepages_special,

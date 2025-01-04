@@ -666,13 +666,14 @@ static int vdfs2_read_inline_file_page(struct page *page)
 }
 
 /**
- * @brief		Read page function.
+ * @brief		Read folio function.
  * @param [in]	file	Pointer to file structure
- * @param [out]	page	Pointer to page structure
+ * @param [out]	folio	Pointer to folio structure
  * @return		Returns error codes
  */
-static int vdfs2_packtree_readpage(struct file *file, struct page *page)
+static int vdfs2_packtree_read_folio(struct file *file, struct folio *folio)
 {
+	struct page *page = &folio->page;
 	struct inode *inode = page->mapping->host;
 	void *pageaddr;
 	int rc = 0;
@@ -1426,7 +1427,7 @@ static const struct inode_operations vdfs2_packtree_dir_inode_operations = {
  * The vdfs2 packtree address space operations.
  */
 static const struct address_space_operations vdfs2_packtree_aops = {
-	.readpage	= vdfs2_packtree_readpage,
+	.read_folio	= vdfs2_packtree_read_folio,
 	/*.readpages	= vdfs2_packtree_readpages*/
 };
 
