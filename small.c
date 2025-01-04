@@ -236,7 +236,6 @@ static unsigned vdfs2_pagevec_lookup_first_page(struct pagevec *pvec,
 	pgoff_t page_index;
 	pgoff_t end;
 	pgoff_t start_index = 0;
-	unsigned nr_pages = 1;
 	int tag;
 	if (wbc->range_cyclic) {
 		writeback_index = mapping->writeback_index;
@@ -254,9 +253,9 @@ static unsigned vdfs2_pagevec_lookup_first_page(struct pagevec *pvec,
 
 	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
 		tag_pages_for_writeback(mapping, page_index, end);
-	nr_pages = pagevec_lookup_range_nr_tag(pvec, mapping, &start_index,
-		(pgoff_t)-1, tag, nr_pages);
-	return nr_pages;
+	pvec->nr = find_get_pages_range_tag(mapping, &start_index, (pgoff_t)-1,
+		tag, 1, pvec->pages);
+	return pagevec_count(pvec);
 }
 
 int writepage_tiny_small(struct address_space *mapping,
