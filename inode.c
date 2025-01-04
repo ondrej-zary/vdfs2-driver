@@ -1163,15 +1163,15 @@ int vdfs2_get_block_bug(struct inode *inode, sector_t iblock,
 	return 0;
 }
 
-static int vdfs2_releasepage(struct page *page, gfp_t gfp_mask)
+static bool vdfs2_release_folio(struct folio *folio, gfp_t gfp_mask)
 {
-	if (!page_has_buffers(page))
-		return 0;
+	if (!folio_buffers(folio))
+		return false;
 
-	if (buffer_delay(page_buffers(page)))
-		return 0;
+	if (buffer_delay(folio_buffers(folio)))
+		return false;
 
-	return try_to_free_buffers(page);
+	return try_to_free_buffers(folio);
 }
 
 /**
@@ -2143,7 +2143,7 @@ const struct address_space_operations vdfs2_aops = {
 	.write_end	= vdfs2_write_end,
 	.bmap		= vdfs2_bmap,
 	.migratepage	= buffer_migrate_page,
-	.releasepage = vdfs2_releasepage,
+	.release_folio	= vdfs2_release_folio,
 	.dirty_folio	= block_dirty_folio,
 
 };
