@@ -1,0 +1,123 @@
+config VDFS2_FS
+	tristate "Samsung VDFS2 file system support (EXPERIMENTAL)"
+	depends on BLOCK
+	select NLS
+	select CRC32
+	default n
+	help
+	  If you say Y here, you will be able to mount format
+	  VDFS2-formatted hard drive partitions with full read-write access.
+
+	  To compile this code as a module, choose M here: the module will be
+	  called vdfs2.
+
+	  If unsure, say N.
+
+config VDFS2_NFS_SUPPORT
+	bool "Support of NFS"
+	depends on VDFS2_FS
+	help
+	  If you say Y here, you can export the file system via NFS. NOTE:
+	  VDFS2 doesn't support permanent file export. i.e. if NFS server
+	  will be rebooted, all opened files  on clients side will be
+	  invalidated.
+
+	  If unsure, say N.
+
+config VDFS2_DEBUG
+	bool "Debug VDFS2"
+	depends on VDFS2_FS
+	help
+	  If you say Y here, you can use the 'debug' mount option to enable
+	  debugging output from the driver.
+
+	  If unsure, say N.
+
+config VDFS2_NOOPTIMIZE
+	bool "Disable build optimization for VDFS2"
+	depends on VDFS2_FS
+	help
+	  If you say Y here, VDFS2 will be built with -O0 opt. Useful for
+	  gdb debug;
+
+	  If unsure, say N.
+
+config VDFS2_STATISTIC
+	bool "Umount statistic"
+	depends on VDFS2_FS
+	help
+	  This feature allows to count amount of data writen to block
+	  device during umount operation. At the end of umount, it 
+	  displays a message with appropriate value.
+		
+	  If unsure, say N. 
+
+	
+config VDFS2_EXPERIMENTAL
+	bool "VDFS2 Experimental Features (EXPERIMENTAL)"
+	depends on VDFS2_FS && EXPERIMENTAL
+
+	help
+	  Enables VDFS2 features under testing. These features are
+	  experimental.
+
+	  If unsure, say N.
+
+config VDFS2_CRC_CHECK
+	bool "VDFS2 CRC check"
+	depends on VDFS2_FS
+	help
+		Enables CRC check for VDFS2 metadata
+
+		If unsure, say N.
+
+config VDFS2_META_SANITY_CHECK
+        bool "VDFS2 metadata sanity check"
+        depends on VDFS2_FS
+        help
+                This feature adds additional checks for VDFS2 metadata,
+		to find metadata corruption on early stage, and prevent
+		writing incorrect data to flash.
+
+                If unsure, say N.
+
+config VDFS2_QUOTA
+	bool "VDFS2 quotas feature"
+	depends on VDFS2_FS
+	help
+		Enables quotas feature. This feature allows the vdfs2 image
+		creator to allocate a maximum amount of disk space a user or
+		group may use. Quota can be set only during image
+		creation, changes at runtime not permitted.
+
+		If unsure, say N.
+
+config VDFS2_PROC
+	bool "VDFS2 print path to files which has a dirty pages"
+	depends on VDFS2_FS
+	help
+		VDFS2 file driver prints a path to files which has a dirty
+		pages via proc file system
+
+		If unsure, say N.
+
+config VDFS2_HW2_SUPPORT
+	bool "Use HW2 API to decompress user data from installed SMART package"
+	depends on ARCH_SDP
+	depends on VDFS2_FS
+	depends on MMC
+	depends on HW_DECOMP_BLK_MMC_SUBSYSTEM
+	select SDP_UNZIP
+	select SDP_UNZIP_TEST_DRIVER
+	help
+	  Utilize hardware decompressor to decompress packed user data from
+	  installed Squashfs imgages;
+
+config VDFS2_SW_DECOMPRESS_RETRY
+	bool "Enable/disable retry decompression of squashfs chunck"
+	depends on VDFS2_FS
+	help
+		In case of unsuccessfull decompresssion retry to decompress
+		chunck for 3 times till successfull result;
+
+		If unsure, say N.
