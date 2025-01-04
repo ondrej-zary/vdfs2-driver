@@ -28,7 +28,6 @@
 #include <linux/buffer_head.h>
 #include <linux/crc32.h>
 #include <linux/version.h>
-#include <linux/genhd.h>
 #include <linux/exportfs.h>
 #include <linux/vmalloc.h>
 #include <linux/writeback.h>
@@ -1653,7 +1652,6 @@ void vdfs2_dirty_super(struct vdfs2_sb_info *sbi)
 
 }
 
-#include <linux/genhd.h>
 /**
  * @brief			Initialize the eMMCFS filesystem.
  * @param [in,out]	sb	The VFS superblock
