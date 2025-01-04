@@ -2132,7 +2132,7 @@ const struct address_space_operations vdfs2_aops = {
 	.write_begin	= vdfs2_write_begin,
 	.write_end	= vdfs2_write_end,
 	.bmap		= vdfs2_bmap,
-	.migratepage	= buffer_migrate_page,
+	.migrate_folio	= buffer_migrate_folio,
 	.release_folio	= vdfs2_release_folio,
 	.dirty_folio	= block_dirty_folio,
 
