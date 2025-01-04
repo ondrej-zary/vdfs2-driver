@@ -1458,23 +1458,13 @@ static int vdfs2_writepages_special(struct address_space *mapping,
  * @return		Returns error codes
  */
 static int vdfs2_write_begin(struct file *file, struct address_space *mapping,
-			loff_t pos, unsigned len, unsigned flags,
-			struct page **pagep, void **fsdata)
+			loff_t pos, unsigned len, struct page **pagep,
+			void **fsdata)
 {
 	int rc = 0;
 	vdfs2_start_transaction(VDFS2_SB(mapping->host->i_sb));
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)
-	*pagep = NULL;
-	rc = block_write_begin(file, mapping, pos, len, flags, pagep,
-		NULL, vdfs2_get_block_prep_da);
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(3, 0, 20) ||\
-		LINUX_VERSION_CODE == KERNEL_VERSION(3, 0, 33) ||\
-		LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 5)
-	rc = block_write_begin(mapping, pos, len, flags, pagep,
+	rc = block_write_begin(mapping, pos, len, pagep,
 		vdfs2_get_block_prep_da);
-#else
-	BUILD_BUG();
-#endif
 	if (rc)
 		vdfs2_stop_transaction(VDFS2_SB(mapping->host->i_sb));
 	return rc;
