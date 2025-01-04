@@ -1260,7 +1260,7 @@ struct page *vdfs2_read_or_create_small_area_page(struct inode *inode,
 		pgoff_t index);
 
 struct bio *vdfs2_allocate_new_bio(struct block_device *bdev,
-		sector_t first_sector, int nr_vecs);
+		sector_t first_sector, int nr_vecs, unsigned int opf);
 int vdfs2_read_pages(struct block_device *bdev, struct page **page,
 			sector_t sector_addr, unsigned int page_count);
 int vdfs2_write_snapshot_pages(struct vdfs2_sb_info *sbi, struct page **pages,
@@ -1303,7 +1303,7 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 		s64 sectors_count, int opf, sector_t *isector);
 
 struct page *vdfs2_read_or_create_page(struct inode *inode, pgoff_t index);
-struct bio *vdfs2_mpage_bio_submit(int opf, struct bio *bio);
+struct bio *vdfs2_mpage_bio_submit(struct bio *bio);
 
 int vdfs2_mpage_writepage(struct page *page,
 		struct writeback_control *wbc, void *data);

@@ -94,7 +94,7 @@ static void read_end_io(struct bio *bio)
  * @return			Returns pointer to allocated BIO structure.
  */
 struct bio *vdfs2_allocate_new_bio(struct block_device *bdev, sector_t first_sector,
-		int nr_vecs)
+		int nr_vecs, unsigned int opf)
 {
 	/*int nr_vecs;*/
 	gfp_t gfp_flags = GFP_NOFS | __GFP_HIGH;
@@ -104,17 +104,15 @@ struct bio *vdfs2_allocate_new_bio(struct block_device *bdev, sector_t first_sec
 	if ((first_sector > s_count) || ((first_sector + nr_vecs) > s_count))
 		return ERR_PTR(-EFAULT);
 
-	bio = bio_alloc(gfp_flags, nr_vecs);
+	bio = bio_alloc(bdev, nr_vecs, opf, gfp_flags);
 
 	if (bio == NULL && (current->flags & PF_MEMALLOC)) {
 		while (!bio && (nr_vecs /= 2))
-			bio = bio_alloc(gfp_flags, nr_vecs);
+			bio = bio_alloc(bdev, nr_vecs, opf, gfp_flags);
 	}
 
-	if (bio) {
-		bio_set_dev(bio, bdev);
+	if (bio)
 		bio->bi_iter.bi_sector = first_sector;
-	}
 
 	return bio;
 }
@@ -316,7 +314,7 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 			goto error_exit;
 
 
-		bio = vdfs2_allocate_new_bio(bdev, start_sector, nr_vectr);
+		bio = vdfs2_allocate_new_bio(bdev, start_sector, nr_vectr, opf);
 		if (IS_ERR_OR_NULL(bio)) {
 			ret = -ENOMEM;
 			goto error_exit;
@@ -365,7 +363,6 @@ int vdfs2_table_IO(struct vdfs2_sb_info *sbi, struct page **pages,
 				break;
 			}
 		} while (sec_to_bio);
-		bio->bi_opf = opf;
 		submit_bio(bio);
 
 	} while (sectors_count > 0);
@@ -427,7 +424,7 @@ again:
 	blk_start_plug(&plug);
 
 	/* Allocate a new bio */
-	bio = vdfs2_allocate_new_bio(bdev, sector_addr, nr_vectr);
+	bio = vdfs2_allocate_new_bio(bdev, sector_addr, nr_vectr, REQ_OP_READ);
 	if (IS_ERR_OR_NULL(bio)) {
 		blk_finish_plug(&plug);
 		VDFS2_ERR("failed to allocate bio\n");
@@ -455,7 +452,6 @@ again:
 		}
 	}
 	bio->bi_private = &wait;
-	bio->bi_opf = REQ_OP_READ;
 	submit_bio(bio);
 	blk_finish_plug(&plug);
 
@@ -500,7 +496,7 @@ int vdfs2_read_page(struct block_device *bdev,
 		return 0;
 
 	/* Allocate a new bio */
-	bio = vdfs2_allocate_new_bio(bdev, sector_addr, 1);
+	bio = vdfs2_allocate_new_bio(bdev, sector_addr, 1, REQ_OP_READ);
 	if (IS_ERR_OR_NULL(bio))
 		return PTR_ERR(bio);
 
@@ -517,7 +513,6 @@ int vdfs2_read_page(struct block_device *bdev,
 		return -EFAULT;
 	}
 	bio->bi_private = &wait;
-	bio->bi_opf = REQ_OP_READ;
 	submit_bio(bio);
 	blk_finish_plug(&plug);
 
@@ -558,7 +553,8 @@ int vdfs2_write_page(struct vdfs2_sb_info *sbi,
 	}
 
 	/* Allocate a new bio */
-	bio = vdfs2_allocate_new_bio(bdev, sector_addr, 1);
+	bio = vdfs2_allocate_new_bio(bdev, sector_addr, 1,
+		REQ_OP_WRITE | REQ_PREFLUSH | REQ_FUA);
 	if (IS_ERR_OR_NULL(bio))
 		return PTR_ERR(bio);
 
@@ -579,7 +575,6 @@ int vdfs2_write_page(struct vdfs2_sb_info *sbi,
 	if (sync_mode)
 		bio->bi_private = &wait;
 
-	bio->bi_opf = REQ_OP_WRITE | REQ_PREFLUSH | REQ_FUA;
 	submit_bio(bio);
 	blk_finish_plug(&plug);
 	if (sync_mode) {
@@ -1132,7 +1127,8 @@ static void meta_end_IO(struct bio *bio)
 }
 
 static struct bio *allocate_new_request(struct vdfs2_sb_info *sbi, sector_t
-		start_block, struct list_head *wait_list_head, int size)
+		start_block, struct list_head *wait_list_head, int size,
+		unsigned int opf)
 {
 	struct bio *bio;
 	sector_t start_sector = start_block << (sbi->block_size_shift -
@@ -1142,7 +1138,7 @@ static struct bio *allocate_new_request(struct vdfs2_sb_info *sbi, sector_t
 	int bio_size = bio_max_segs(size);
 
 
-	bio = vdfs2_allocate_new_bio(bdev, start_sector, bio_size);
+	bio = vdfs2_allocate_new_bio(bdev, start_sector, bio_size, opf);
 	if (!bio) {
 		bio = ERR_PTR(-ENOMEM);
 		goto exit;
@@ -1282,13 +1278,11 @@ static int vdfs2_meta_write(struct vdfs2_sb_info *sbi,
 		BUG_ON(ret);
 
 		if (last_block + blocks_per_page != block) {
-			if (bio) {
-				bio->bi_opf = REQ_OP_WRITE | REQ_FUA;
+			if (bio)
 				submit_bio(bio);
-			}
 again:
 			bio = allocate_new_request(sbi, block, &wait_list_head,
-					nr_pages);
+					nr_pages, REQ_OP_WRITE | REQ_FUA);
 			if (!bio)
 				goto again;
 		} else if (!bio) {
@@ -1299,7 +1293,6 @@ again:
 		set_page_writeback(pvec.pages[index]);
 		size = bio_add_page(bio, pvec.pages[index], PAGE_SIZE, 0);
 		if (size < PAGE_SIZE) {
-			bio->bi_opf = REQ_OP_WRITE | REQ_FUA;
 			submit_bio(bio);
 			bio = NULL;
 			last_block = 0;
@@ -1332,10 +1325,8 @@ again:
 		}
 	};
 
-	if (bio) {
-		bio->bi_opf = REQ_OP_WRITE | REQ_FUA;
+	if (bio)
 		submit_bio(bio);
-	}
 
 	blk_finish_plug(&plug);
 
@@ -1401,17 +1392,16 @@ static int vdfs2_meta_read(struct inode *inode, int type, struct page **pages,
 		}
 
 		if (last_block + blocks_per_page != block) {
-			if (bio) {
-				bio->bi_opf = REQ_OP_READ;
+			if (bio)
 				submit_bio(bio);
-			}
 again:
 			if (async)
 				bio = allocate_new_request(sbi, block, NULL,
-						page_count - count);
+					page_count - count, REQ_OP_READ);
 			else
 				bio = allocate_new_request(sbi, block,
-					&wait_list_head, page_count - count);
+					&wait_list_head, page_count - count,
+					REQ_OP_READ);
 			if (!bio)
 				goto again;
 		} else if (!bio) {
@@ -1421,7 +1411,6 @@ again:
 
 		size = bio_add_page(bio, page, PAGE_SIZE, 0);
 		if (size < PAGE_SIZE) {
-			bio->bi_opf = REQ_OP_READ;
 			submit_bio(bio);
 			bio = NULL;
 			goto again;
@@ -1430,10 +1419,8 @@ again:
 	};
 
 exit:
-	if (bio) {
-		bio->bi_opf = REQ_OP_READ;
+	if (bio)
 		submit_bio(bio);
-	}
 
 	blk_finish_plug(&plug);
 
@@ -1658,10 +1645,9 @@ struct page *vdfs2_read_or_create_small_area_page(struct inode *inode,
 	return pages[0];
 }
 
-struct bio *vdfs2_mpage_bio_submit(int opf, struct bio *bio)
+struct bio *vdfs2_mpage_bio_submit(struct bio *bio)
 {
 	bio->bi_end_io = end_io_write;
-	bio->bi_opf = opf;
 	submit_bio(bio);
 	return NULL;
 }
@@ -1764,7 +1750,7 @@ int vdfs2_mpage_writepage(struct page *page,
 	 * If it's the end of contiguous chunk, submit the BIO.
 	 */
 	if (bio && mpd->last_block_in_bio != boundary_block - 1)
-		bio = vdfs2_mpage_bio_submit(REQ_OP_WRITE, bio);
+		bio = vdfs2_mpage_bio_submit(bio);
 
 
 alloc_new:
@@ -1774,7 +1760,7 @@ alloc_new:
 		BUG();
 	if (IS_ERR_OR_NULL(bio)) {
 		bio = vdfs2_allocate_new_bio(bdev, boundary_block << (blkbits - 9),
-				BIO_MAX_VECS);
+				BIO_MAX_VECS, REQ_OP_WRITE);
 		if (IS_ERR_OR_NULL(bio))
 			goto confused;
 	}
@@ -1783,7 +1769,7 @@ alloc_new:
 	 * TODO: replace PAGE_SIZE with real user data size?
 	 */
 	if (bio_add_page(bio, page, PAGE_SIZE, 0) < PAGE_SIZE) {
-		bio = vdfs2_mpage_bio_submit(REQ_OP_WRITE, bio);
+		bio = vdfs2_mpage_bio_submit(bio);
 		goto alloc_new;
 	}
 
@@ -1807,7 +1793,7 @@ confused:
 	if (IS_ERR_OR_NULL(bio))
 		bio = NULL;
 	else
-		bio = vdfs2_mpage_bio_submit(REQ_OP_WRITE, bio);
+		bio = vdfs2_mpage_bio_submit(bio);
 	if (buffer_mapped(bh))
 		if (bh->b_blocknr == 0)
 			BUG();

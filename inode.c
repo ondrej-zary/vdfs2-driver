@@ -1401,7 +1401,7 @@ int vdfs2_mpage_writepages(struct address_space *mapping,
 	/* write dirty pages */
 	ret = write_cache_pages(mapping, wbc, vdfs2_mpage_writepage, &mpd);
 	if (mpd.bio)
-		vdfs2_mpage_bio_submit(WRITE, mpd.bio);
+		vdfs2_mpage_bio_submit(mpd.bio);
 	blk_finish_plug(&plug);
 	vdfs2_stop_transaction(sbi);
 	return ret;
