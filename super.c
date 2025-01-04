@@ -1666,7 +1666,6 @@ static int vdfs2_fill_super(struct super_block *sb, void *data, int silent)
 	int ret	= 0;
 	struct vdfs2_sb_info *sbi;
 	struct inode *root_inode;
-	char bdev_name[BDEVNAME_SIZE];
 
 #ifdef CONFIG_VDFS2_PRINT_MOUNT_TIME
 	unsigned long mount_start = jiffies;
@@ -1693,7 +1692,7 @@ static int vdfs2_fill_super(struct super_block *sb, void *data, int silent)
 	if (!sb->s_bdev)
 		return -ENXIO;
 
-	VDFS2_MOUNT_INFO("mounting %s", bdevname(sb->s_bdev, bdev_name));
+	VDFS2_MOUNT_INFO("mounting %pg", sb->s_bdev);
 	sbi = kzalloc(sizeof(*sbi), GFP_KERNEL);
 	if (!sbi)
 		return -ENOMEM;
