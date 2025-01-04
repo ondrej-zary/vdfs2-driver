@@ -167,7 +167,7 @@ static int vdfs2_readdir(struct file *filp, struct dir_context *ctx)
 		if (!dir_emit(ctx, ".", 1, inode->i_ino, DT_DIR))
 			goto exit_noput;
 		ctx->pos++;
-		/* fall through */
+		fallthrough;
 	case 1:
 		if (!dir_emit(ctx, "..", 2,
 			dentry->d_parent->d_inode->i_ino, DT_DIR))
